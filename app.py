@@ -41,7 +41,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📅 我的專屬大字體行事曆")
+st.title("📅 我的專屬大字體行行事曆")
 
 # 倒數計時
 target_date = datetime(2026, 7, 10)
@@ -57,11 +57,11 @@ if days_left >= 0:
 else:
     st.markdown('<div class="countdown-box">🎉 活動已圓滿完成！</div>', unsafe_allow_html=True)
 
-# 初始預設行程
+# 初始預設行程（修正此處的語法小錯誤）
 if 'events' not in st.session_state:
     st.session_state.events = [
         {"id": 1, "日期": "2026-06-25", "分類": "🎵 樂團事務", "時間": "13:30 - 15:30", "內容": "全團總排練（注意：分部樂譜需收齊）"},
-        {"id": 2, "2026-06-25", "分類": "🏡 個人生活", "時間": "18:00", "內容": "與家人聚餐"},
+        {"id": 2, "日期": "2026-06-25", "分類": "🏡 個人生活", "時間": "18:00", "內容": "與家人聚餐"},
     ]
 
 # 側邊欄控制台（點選左上角 >> 展開）
@@ -116,7 +116,6 @@ elif mode == "✏️ 修改行程":
             edit_submit = st.form_submit_button("💾 確認修改並儲存")
             
             if edit_submit:
-                # 找到舊的那筆並更新
                 for e in st.session_state.events:
                     if e["id"] == selected_event["id"]:
                         e["日期"] = str(updated_date)
