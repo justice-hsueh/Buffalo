@@ -64,15 +64,24 @@ st.markdown("""
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
     .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
-    .rainbow-text { font-size: 42px !important; font-weight: bold !important; background: linear-gradient(to right, #E53E3E, #3182CE); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .rainbow-text { font-size: 42px !important; font-weight: bold !important; 
+        background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .custom-title-container { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+    .custom-title-logo { width: 80px; height: auto; }
     </style>
 """, unsafe_allow_html=True)
 
 if 'events' not in st.session_state: st.session_state.events = load_events()
 
-# --- 標題區塊 ---
-st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
-st.markdown("---")
+# --- 標題與 Logo 渲染 ---
+logo_file = next((n for n in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"] if os.path.exists(n)), None)
+if logo_file:
+    with open(logo_file, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    st.markdown(f'''<div class="custom-title-container"><img class="custom-title-logo" src="data:image/jpeg;base64,{encoded}"><span class="rainbow-text">大竹國小兒童樂隊行事曆</span></div>''', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
 
 # --- 側邊欄控制台 ---
 st.sidebar.markdown("## ⚙️ 管理員控制台")
@@ -114,23 +123,23 @@ if st.sidebar.text_input("🔑 請輸入管理密碼：", type="password") == AD
             save_events(st.session_state.events)
             st.rerun()
 
-# --- 主畫面呈現 ---
+# --- 主畫面 ---
 col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "✨ 演出活動"], key=lambda x: get_sort_date(x["日期"])):
         lines = ev["內容"].split("\n")
-        st.markdown(f"""<div class="event-card show-style"><div class="title-text">🎵 {lines[0]}</div>
-            📅 {ev["日期"]} | ⏰ {ev["時間"]}<br>🏠 {ev.get("地點", "未定")}<hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
+        st.markdown(f'''<div class="event-card show-style"><div class="title-text">🎵 {lines[0]}</div>
+            📅 {ev["日期"]} | ⏰ {ev["時間"]}<br>🏠 {ev.get("地點", "未定")}<hr>{render_content_items(lines[1:])}</div>''', unsafe_allow_html=True)
 
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: get_sort_date(x["日期"])):
-        st.markdown(f"""<div class="event-card progress-style"><strong>📅 {ev["日期"]}</strong><hr>{render_content_items(ev["內容"].split("\n"))}</div>""", unsafe_allow_html=True)
+        st.markdown(f'''<div class="event-card progress-style"><strong>📅 {ev["日期"]}</strong><hr>{render_content_items(ev["內容"].split("\n"))}</div>''', unsafe_allow_html=True)
 
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "📢 通知事項"], key=lambda x: get_sort_date(x["日期"])):
         lines = ev["內容"].split("\n")
-        st.markdown(f"""<div class="event-card notice-style"><div class="title-text">📢 {lines[0]}</div>
-            📅 {ev["日期"]}<hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
+        st.markdown(f'''<div class="event-card notice-style"><div class="title-text">📢 {lines[0]}</div>
+            📅 {ev["日期"]}<hr>{render_content_items(lines[1:])}</div>''', unsafe_allow_html=True)
