@@ -23,7 +23,7 @@ def load_admin_password():
         except:
             pass
     # 如果檔案不存在，自動建立並寫入預設密碼
-    default_config = {"admin_password": "dzor"}
+    default_config = {"admin_password": "dccb"}
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(default_config, f, ensure_ascii=False, indent=4)
