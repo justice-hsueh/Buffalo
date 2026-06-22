@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date, timedelta
 import os
+import base64
 import json
 
 st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide")
@@ -9,6 +10,7 @@ st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide"
 DATA_FILE = "events.json"
 CONFIG_FILE = "config.json"
 
+# --- 密碼管理 ---
 def load_admin_password():
     MY_PASSWORD = "dccb"
     if os.path.exists(CONFIG_FILE):
@@ -20,6 +22,7 @@ def load_admin_password():
 
 ADMIN_PASSWORD = load_admin_password()
 
+# --- 資料存取 ---
 def load_events():
     if os.path.exists(DATA_FILE):
         try:
@@ -32,6 +35,7 @@ def save_events(events):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(events, f, ensure_ascii=False, indent=4)
 
+# --- 輔助功能 ---
 def get_smart_icon(text):
     text_lower = text.lower()
     if any(k in text_lower for k in ["譜", "歌", "樂譜", "演奏"]): return "🎼"
@@ -51,6 +55,7 @@ def get_sort_date(date_str):
     try: return datetime.strptime(str(date_str).split("~")[0].strip(), "%Y-%m-%d").date()
     except: return date.max
 
+# --- 樣式設定 ---
 st.markdown("""
     <style>
     .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
@@ -59,10 +64,15 @@ st.markdown("""
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
     .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
+    .rainbow-text { font-size: 42px !important; font-weight: bold !important; background: linear-gradient(to right, #E53E3E, #3182CE); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 """, unsafe_allow_html=True)
 
 if 'events' not in st.session_state: st.session_state.events = load_events()
+
+# --- 標題區塊 ---
+st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
+st.markdown("---")
 
 # --- 側邊欄控制台 ---
 st.sidebar.markdown("## ⚙️ 管理員控制台")
@@ -70,7 +80,6 @@ if st.sidebar.text_input("🔑 請輸入管理密碼：", type="password") == AD
     st.sidebar.success("🔓 已解鎖編輯")
     mode = st.sidebar.radio("操作項目：", ["➕ 新增行程", "✏️ 修改行程", "🗑️ 刪除行程"])
     
-    # 新增行程
     if mode == "➕ 新增行程":
         with st.sidebar.form("add_form", clear_on_submit=True):
             cat = st.selectbox("分類", ["✨ 演出活動", "🥁 每日進度", "📢 通知事項"])
@@ -86,7 +95,6 @@ if st.sidebar.text_input("🔑 請輸入管理密碼：", type="password") == AD
                 save_events(st.session_state.events)
                 st.rerun()
 
-    # 修改行程
     elif mode == "✏️ 修改行程":
         event_list = {f"{e['分類']} - {e['內容'][:10]} ({e['日期']})": e for e in st.session_state.events}
         selected = st.sidebar.selectbox("選擇要修改的行程", list(event_list.keys()))
@@ -98,7 +106,6 @@ if st.sidebar.text_input("🔑 請輸入管理密碼：", type="password") == AD
                 save_events(st.session_state.events)
                 st.rerun()
 
-    # 刪除行程
     elif mode == "🗑️ 刪除行程":
         event_list = {f"{e['分類']} - {e['內容'][:10]} ({e['日期']})": e for e in st.session_state.events}
         selected = st.sidebar.selectbox("選擇要刪除的行程", list(event_list.keys()))
