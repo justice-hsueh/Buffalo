@@ -64,9 +64,15 @@ st.markdown("""
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
     .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
-    .rainbow-text { font-size: 42px !important; font-weight: bold !important; 
+.rainbow-text { font-size: 42px !important; font-weight: bold !important; 
         background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    /* 當螢幕寬度小於 600px 時，標題字體自動縮小為 26px */
+    @media (max-width: 600px) {
+        .rainbow-text { font-size: 26px !important; }
+        .custom-title-logo { width: 50px !important; }
+    }
     .custom-title-container { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
     .custom-title-logo { width: 80px; height: auto; }
     </style>
