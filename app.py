@@ -19,17 +19,45 @@ def load_events():
                 return json.load(f)
         except:
             pass
-    # 預設範例資料（若檔案不存在或損壞時使用）
+    # 預設範例資料（每一行代表一個獨立項目）
     return [
-        {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練（注意：分部樂譜需收齊）"},
-        {"id": 2, "日期": "2026-06-26", "分類": "🥁 每日進度", "時間": "晨課時間", "內容": "打擊與鍵盤分部練習基本功"},
-        {"id": 3, "日期": "2026-06-27", "分類": "📢 通知事項", "時間": "全天", "內容": "請大家記得帶樂器與個人講義回家複習"},
+        {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練\n注意：各分部樂譜需收齊\n請記得攜帶個人講義"},
+        {"id": 2, "日期": "2026-06-26", "分類": "🥁 每日進度", "時間": "晨課時間", "內容": "打擊與鍵盤分部練習基本功\n加強弱奏節段的穩定度"},
+        {"id": 3, "日期": "2026-06-27", "分類": "📢 通知事項", "時間": "全天", "內容": "放學請大家帶樂器回家複習\n準備更換演出團服的量身確認"},
     ]
 
 # 儲存資料到檔案的函式
 def save_events(events):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(events, f, ensure_ascii=False, indent=4)
+
+# 關鍵輔助函式：根據文字內容自動分配最適合的圖示
+def get_smart_icon(text):
+    text_lower = text.lower()
+    if any(keyword in text_lower for keyword in ["譜", "歌", "樂譜", "演奏"]):
+        return "🎼"
+    elif any(keyword in text_lower for keyword in ["帶", "拿", "備", "準備", "攜帶"]):
+        return "🎒"
+    elif any(keyword in text_lower for keyword in ["注意", "務必", "記得", "重要", "切記"]):
+        return "⚠️"
+    elif any(keyword in text_lower for keyword in ["服", "穿", "衣", "團服"]):
+        return "👕"
+    else:
+        return "📌" # 預設維持老師愛用的圖釘
+
+# 關鍵輔助函式：將包含換行的文字渲染成精美的多項目 HTML 清單
+def render_content_items(content_str):
+    if not content_str:
+        return ""
+    # 依換行符號切割成陣列，並濾掉空白行
+    lines = [line.strip() for line in content_str.split("\n") if line.strip()]
+    
+    html_output = ""
+    for line in lines:
+        icon = get_smart_icon(line)
+        # 用 margin-bottom 做出項目之間的美麗間距
+        html_output += f'<div style="margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px;"><span>{icon}</span><span>{line}</span></div>'
+    return html_output
 
 # 套用自訂 CSS：全面放大字體與美化卡片風格
 st.markdown("""
@@ -126,7 +154,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-# 核心修改：直接從檔案載入最新行程資料，永不丟失
+# 從檔案載入最新行程資料
 if 'events' not in st.session_state:
     st.session_state.events = load_events()
 
@@ -169,7 +197,7 @@ if password_input == ADMIN_PASSWORD:
     mode = st.sidebar.radio("請選擇操作項目：", ["➕ 新增行程", "✏️ 修改行程", "🗑️ 刪除行程"])
     categories = ["✨ 演出活動", "🥁 每日進度", "📢 通知事項"]
     
-    # 新增行程並寫入檔案
+    # 新增行程
     if mode == "➕ 新增行程":
         st.sidebar.markdown("<h3>➕ 新增新行程</h3>", unsafe_allow_html=True)
         with st.sidebar.form("add_form", clear_on_submit=True):
@@ -177,7 +205,9 @@ if password_input == ADMIN_PASSWORD:
             new_category = st.selectbox("選擇分類", categories)
             new_time = st.text_input("輸入時間")
             new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)") if new_category == "✨ 演出活動" else ""
-            new_content = st.text_area("行程備忘 / 準備事項")
+            
+            # 溫馨提醒老師可以換行
+            new_content = st.text_area("行程備忘 / 準備事項（換行可分成多個圖示項目）：")
             submit_button = st.form_submit_button("確認加入行事曆")
             
             if submit_button and new_content:
@@ -187,14 +217,14 @@ if password_input == ADMIN_PASSWORD:
                     event_data["地點"] = new_location if new_location else "未定"
                 
                 st.session_state.events.append(event_data)
-                save_events(st.session_state.events)  # 同步寫入硬碟檔案
+                save_events(st.session_state.events)
                 st.rerun()
 
-    # 修改行程並寫入檔案
+    # 修改行程
     elif mode == "✏️ 修改行程":
         st.sidebar.markdown("<h3>✏️ 修改現有行程</h3>", unsafe_allow_html=True)
         if st.session_state.events:
-            edit_options = {f"【{e['日期']}】{e['分類'][:2]} - {e['內容'][:10]}...": e for e in st.session_state.events}
+            edit_options = {f"【{e['日期']}】{e['分類'][:2]} - {e['內容'].splitlines()[0][:10]}...": e for e in st.session_state.events}
             selected_text = st.sidebar.selectbox("請選擇要修改的行程：", list(edit_options.keys()))
             selected_event = edit_options[selected_text]
             
@@ -205,7 +235,7 @@ if password_input == ADMIN_PASSWORD:
                 updated_category = st.selectbox("修改分類", categories, index=curr_cat_idx)
                 updated_time = st.text_input("修改時間", selected_event["時間"])
                 updated_location = st.text_input("🏠 修改演出地點", selected_event.get("地點", "未定")) if updated_category == "✨ 演出活動" else ""
-                updated_content = st.text_area("修改行程備忘", selected_event["內容"])
+                updated_content = st.text_area("修改行程備忘（可換行多項目）", selected_event["內容"])
                 edit_submit = st.form_submit_button("💾 確認修改並儲存")
                 
                 if edit_submit:
@@ -219,27 +249,24 @@ if password_input == ADMIN_PASSWORD:
                                 e["地點"] = updated_location if updated_location else "未定"
                             elif "地點" in e:
                                 del e["地點"]
-                    save_events(st.session_state.events)  # 同步寫入硬碟檔案
+                    save_events(st.session_state.events)
                     st.rerun()
+        else:
+            st.sidebar.write("目前沒有行程可供修改")
 
-    # 刪除行程並寫入檔案
+    # 刪除行程
     elif mode == "🗑️ 刪除行程":
         st.sidebar.markdown("<h3>🗑️ 刪除現有行程</h3>", unsafe_allow_html=True)
         if st.session_state.events:
-            delete_options = {f"【{e['日期']}】{e['時間']} - {e['內容'][:10]}...": e["id"] for e in st.session_state.events}
+            delete_options = {f"【{e['日期']}】{e['時間']} - {e['內容'].splitlines()[0][:10]}...": e["id"] for e in st.session_state.events}
             selected_del_text = st.sidebar.selectbox("請選擇要刪除的行程：", list(delete_options.keys()))
             delete_button = st.sidebar.button("❌ 確定刪除這筆行程", use_container_width=True)
             
             if delete_button:
                 target_id = delete_options[selected_del_text]
                 st.session_state.events = [e for e in st.session_state.events if e["id"] != target_id]
-                save_events(st.session_state.events)  # 同步寫入硬碟檔案
+                save_events(st.session_state.events)
                 st.rerun()
-else:
-    if password_input:
-        st.sidebar.error("🔒 密碼錯誤，請重新輸入。")
-    else:
-        st.sidebar.info("💡 請在上方輸入密碼以解鎖修改與倒數自訂功能。")
 
 # 右側主畫面呈現
 col1, col2, col3 = st.columns([1, 1, 1])
@@ -247,14 +274,17 @@ col1, col2, col3 = st.columns([1, 1, 1])
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "✨ 演出活動"], key=lambda x: x["日期"]):
-        st.markdown(f'<div class="event-card show-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>🏠 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #0EA5E9;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
+        items_html = render_content_items(ev["內容"]) # 調用智慧拆分渲染
+        st.markdown(f'<div class="event-card show-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>🏠 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #0EA5E9;">{items_html}</div>', unsafe_allow_html=True)
 
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: x["日期"]):
-        st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
+        items_html = render_content_items(ev["內容"]) # 調用智慧拆分渲染
+        st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">{items_html}</div>', unsafe_allow_html=True)
 
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "📢 通知事項"], key=lambda x: x["日期"]):
-        st.markdown(f'<div class="event-card notice-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #EA4335;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
+        items_html = render_content_items(ev["內容"]) # 調用智慧拆分渲染
+        st.markdown(f'<div class="event-card notice-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #EA4335;">{items_html}</div>', unsafe_allow_html=True)
