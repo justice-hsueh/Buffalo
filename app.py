@@ -13,7 +13,7 @@ st.markdown("""
         font-size: 20px !important;
         font-weight: 500 !important;
     }
-    h1 { font-size: 42px !important; font-weight: bold !important; color: #1E3A8A; margin-top: 10px; }
+    h1 { font-size: 42px !important; font-weight: bold !important; color: #1E3A8A; margin: 0 !important; line-height: 1.2; }
     h2 { font-size: 32px !important; font-weight: bold !important; color: #0D9488; }
     h3 { font-size: 26px !important; font-weight: bold !important; }
     .stButton>button {
@@ -40,6 +40,14 @@ st.markdown("""
     .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     div[data-testid="stForm"] { background-color: #F3F4F6; padding: 20px; border-radius: 10px; }
+    
+    /* 讓置頂的 Logo 與文字垂直居中對齊 */
+    .title-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -50,15 +58,24 @@ for name in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"]:
         logo_file = name
         break
 
-# 如果有找到專屬 Logo 圖片就顯示
+# --- 標題與 Logo 縮小並排區 ---
 if logo_file:
-    st.image(logo_file, width=380)
+    # 建立兩欄，第一欄放 Logo（寬度小），第二欄放標題文字
+    # width=100 大約就是 42px 字體加上周圍留白的高度，能完美和字體等高
+    col_logo, col_title = st.columns([1, 12])
+    with col_logo:
+        st.image(logo_file, width=100)
+    with col_title:
+        st.markdown("<h1 style='padding-top: 15px;'>大竹國小兒童樂隊行事曆</h1>", unsafe_allow_html=True)
 else:
-    # 如果 GitHub 還沒抓到圖片，先用可愛的樂團指揮圖示頂替，畫面才不會空空的
-    st.markdown("<h1 style='font-size: 60px; margin-bottom: 0;'>🎵🪗🥁</h1>", unsafe_allow_html=True)
-
-# 大標題
-st.title("大竹國小兒童樂隊行事曆")
+    # 如果沒抓到圖片，則顯示縮小版的前置音樂符號與大標題並排
+    st.markdown("""
+        <div class="title-container">
+            <span style="font-size: 42px;">🎵</span>
+            <h1>大竹國小兒童樂隊行事曆</h1>
+        </div>
+    """, unsafe_allow_html=True)
+# ----------------------------
 
 # 初始化記憶體資料
 if 'events' not in st.session_state:
