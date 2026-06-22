@@ -56,7 +56,7 @@ def get_sort_date(date_str):
     except: return date.max
 
 # --- 樣式設定 ---
-st.markdown("""
+st.markdown(r"""
 st.markdown("""
     <style>
     .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
