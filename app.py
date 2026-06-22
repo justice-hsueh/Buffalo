@@ -2,29 +2,21 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date, timedelta
 import os
-import base64
 import json
 
-# 設定網頁標題與整體風格
 st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide")
 
 DATA_FILE = "events.json"
 CONFIG_FILE = "config.json"
 
-# --- 密碼管理 ---
 def load_admin_password():
-    MY_PASSWORD = "dccb" 
+    MY_PASSWORD = "dccb"
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                return config.get("admin_password", MY_PASSWORD)
+                return json.load(f).get("admin_password", MY_PASSWORD)
         except: pass
     return MY_PASSWORD
-
-def save_admin_password(new_password):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump({"admin_password": new_password}, f, ensure_ascii=False, indent=4)
 
 ADMIN_PASSWORD = load_admin_password()
 
@@ -40,7 +32,6 @@ def save_events(events):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(events, f, ensure_ascii=False, indent=4)
 
-# 輔助函式
 def get_smart_icon(text):
     text_lower = text.lower()
     if any(k in text_lower for k in ["譜", "歌", "樂譜", "演奏"]): return "🎼"
@@ -60,14 +51,12 @@ def get_sort_date(date_str):
     try: return datetime.strptime(str(date_str).split("~")[0].strip(), "%Y-%m-%d").date()
     except: return date.max
 
-# --- CSS 優化：縮小分隔線間距 ---
 st.markdown("""
     <style>
     .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
     .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
     .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
-    /* 縮小分隔線間距的核心代碼 */
     hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
     .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
     </style>
@@ -75,30 +64,21 @@ st.markdown("""
 
 if 'events' not in st.session_state: st.session_state.events = load_events()
 
-# --- 側邊欄 ---
+# --- 側邊欄控制台 ---
 st.sidebar.markdown("## ⚙️ 管理員控制台")
-password_input = st.sidebar.text_input("🔑 請輸入管理密碼：", type="password")
-
-if password_input == ADMIN_PASSWORD:
+if st.sidebar.text_input("🔑 請輸入管理密碼：", type="password") == ADMIN_PASSWORD:
     st.sidebar.success("🔓 已解鎖編輯")
     mode = st.sidebar.radio("操作項目：", ["➕ 新增行程", "✏️ 修改行程", "🗑️ 刪除行程"])
     
+    # 新增行程
     if mode == "➕ 新增行程":
         with st.sidebar.form("add_form", clear_on_submit=True):
-            date_mode = st.selectbox("日期模式", ["單日", "日期範圍"])
-            if date_mode == "單日":
-                chosen = st.date_input("選擇日期")
-                f_date = str(chosen)
-            else:
-                rng = st.date_input("選擇範圍", value=[date.today(), date.today()])
-                f_date = f"{rng[0]} ~ {rng[1]}" if len(rng)==2 else str(rng[0])
-            
             cat = st.selectbox("分類", ["✨ 演出活動", "🥁 每日進度", "📢 通知事項"])
+            f_date = str(st.date_input("選擇日期"))
             time_in = st.text_input("時間 (每日進度可留空)")
-            loc = st.text_input("地點 (僅限演出)") if cat == "✨ 演出活動" else ""
+            loc = st.text_input("地點 (僅演出用)") if cat == "✨ 演出活動" else ""
             cont = st.text_area("內容 (第一行為標題)")
-            
-            if st.form_submit_button("儲存"):
+            if st.form_submit_button("新增"):
                 new_id = max([e["id"] for e in st.session_state.events] + [0]) + 1
                 data = {"id": new_id, "日期": f_date, "分類": cat, "時間": time_in, "內容": cont}
                 if cat == "✨ 演出活動": data["地點"] = loc
@@ -106,33 +86,44 @@ if password_input == ADMIN_PASSWORD:
                 save_events(st.session_state.events)
                 st.rerun()
 
-# --- 主畫面 ---
-col1, col2, col3 = st.columns(3)
+    # 修改行程
+    elif mode == "✏️ 修改行程":
+        event_list = {f"{e['分類']} - {e['內容'][:10]} ({e['日期']})": e for e in st.session_state.events}
+        selected = st.sidebar.selectbox("選擇要修改的行程", list(event_list.keys()))
+        ev = event_list[selected]
+        with st.sidebar.form("edit_form"):
+            new_cont = st.text_area("修改內容", ev["內容"])
+            if st.form_submit_button("儲存修改"):
+                ev["內容"] = new_cont
+                save_events(st.session_state.events)
+                st.rerun()
 
-# 1. 演出
+    # 刪除行程
+    elif mode == "🗑️ 刪除行程":
+        event_list = {f"{e['分類']} - {e['內容'][:10]} ({e['日期']})": e for e in st.session_state.events}
+        selected = st.sidebar.selectbox("選擇要刪除的行程", list(event_list.keys()))
+        if st.sidebar.button("確認刪除"):
+            st.session_state.events = [e for e in st.session_state.events if e["id"] != event_list[selected]["id"]]
+            save_events(st.session_state.events)
+            st.rerun()
+
+# --- 主畫面呈現 ---
+col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "✨ 演出活動"], key=lambda x: get_sort_date(x["日期"])):
         lines = ev["內容"].split("\n")
-        st.markdown(f"""<div class="event-card show-style">
-            <div class="title-text">🎵 {lines[0]}</div>
-            📅 {ev["日期"]} | ⏰ {ev["時間"]}<br>🏠 {ev.get("地點", "未定")}
-            <hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="event-card show-style"><div class="title-text">🎵 {lines[0]}</div>
+            📅 {ev["日期"]} | ⏰ {ev["時間"]}<br>🏠 {ev.get("地點", "未定")}<hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
 
-# 2. 每日進度
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: get_sort_date(x["日期"])):
-        st.markdown(f"""<div class="event-card progress-style">
-            <strong>📅 {ev["日期"]}</strong>
-            <hr>{render_content_items(ev["內容"].split("\n"))}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="event-card progress-style"><strong>📅 {ev["日期"]}</strong><hr>{render_content_items(ev["內容"].split("\n"))}</div>""", unsafe_allow_html=True)
 
-# 3. 通知
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "📢 通知事項"], key=lambda x: get_sort_date(x["日期"])):
         lines = ev["內容"].split("\n")
-        st.markdown(f"""<div class="event-card notice-style">
-            <div class="title-text">📢 {lines[0]}</div>
-            📅 {ev["日期"]}
-            <hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="event-card notice-style"><div class="title-text">📢 {lines[0]}</div>
+            📅 {ev["日期"]}<hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
