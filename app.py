@@ -49,8 +49,8 @@ st.title("🪗 大竹國小兒童樂隊行事曆")
 if 'events' not in st.session_state:
     st.session_state.events = [
         {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練（注意：分部樂譜需收齊）"},
-        {"id": 2, "日期": "2026-06-26", "分類": "🥁 每日進度", "時間": "晨課時間", "地點": "音樂教室", "內容": "打擊與鍵盤分部練習基本功"},
-        {"id": 3, "日期": "2026-06-27", "分類": "📢 通知事項", "時間": "全天", "地點": "各自家中", "內容": "請大家記得帶樂器與個人講義回家複習"},
+        {"id": 2, "日期": "2026-06-26", "分類": "🥁 每日進度", "時間": "晨課時間", "內容": "打擊與鍵盤分部練習基本功"},
+        {"id": 3, "日期": "2026-06-27", "分類": "📢 通知事項", "時間": "全天", "內容": "請大家記得帶樂器與個人講義回家複習"},
     ]
 
 if 'target_date' not in st.session_state:
@@ -100,18 +100,26 @@ if password_input == ADMIN_PASSWORD:
             new_date = st.date_input("選擇日期")
             new_category = st.selectbox("選擇分類", categories)
             new_time = st.text_input("輸入時間")
-            new_location = st.text_input("輸入地點 (例如：音樂教室)")
+            
+            # 只有選擇演出活動，才會顯示或需要填寫地點
+            new_location = ""
+            if new_category == "✨ 演出活動":
+                new_location = st.text_input("📍 輸入演出地點 (例如：演藝廳)")
+                
             new_content = st.text_area("行程備忘 / 準備事項")
             submit_button = st.form_submit_button("確認加入行事曆")
             
             if submit_button and new_content:
                 new_id = max([e["id"] for e in st.session_state.events]) + 1 if st.session_state.events else 1
-                st.session_state.events.append({
-                    "id": new_id, "日期": str(new_date), "分類": new_category, "時間": new_time, "地點": new_location if new_location else "未定", "內容": new_content
-                })
+                event_data = {
+                    "id": new_id, "日期": str(new_date), "分類": new_category, "時間": new_time, "內容": new_content
+                }
+                if new_category == "✨ 演出活動":
+                    event_data["地點"] = new_location if new_location else "未定"
+                st.session_state.events.append(event_data)
                 st.rerun()
 
-    # 修改行程（已修正 123 行的打字語法錯誤）
+    # 修改行程
     elif mode == "✏️ 修改行程":
         st.sidebar.markdown("<h3>✏️ 修改現有行程</h3>", unsafe_allow_html=True)
         if st.session_state.events:
@@ -125,7 +133,12 @@ if password_input == ADMIN_PASSWORD:
                 curr_cat_idx = categories.index(selected_event["分類"]) if selected_event["分類"] in categories else 0
                 updated_category = st.selectbox("修改分類", categories, index=curr_cat_idx)
                 updated_time = st.text_input("修改時間", selected_event["時間"])
-                updated_location = st.text_input("修改地點", selected_event.get("地點", ""))
+                
+                # 只有演出活動跳出修改地點的格子
+                updated_location = ""
+                if updated_category == "✨ 演出活動":
+                    updated_location = st.text_input("📍 修改演出地點", selected_event.get("地點", "未定"))
+                    
                 updated_content = st.text_area("修改行程備忘", selected_event["內容"])
                 edit_submit = st.form_submit_button("💾 確認修改並儲存")
                 
@@ -135,8 +148,11 @@ if password_input == ADMIN_PASSWORD:
                             e["日期"] = str(updated_date)
                             e["分類"] = updated_category
                             e["時間"] = updated_time
-                            e["地點"] = updated_location if updated_location else "未定"
                             e["內容"] = updated_content
+                            if updated_category == "✨ 演出活動":
+                                e["地點"] = updated_location if updated_location else "未定"
+                            elif "地點" in e:
+                                del e["地點"] # 切換成別的分類時就把地點欄位移除
                     st.rerun()
         else:
             st.sidebar.write("目前沒有行程可供修改")
@@ -174,10 +190,10 @@ with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     progress_events = [e for e in st.session_state.events if e["分類"] == "🥁 每日進度"]
     for ev in sorted(progress_events, key=lambda x: x["日期"]):
-        st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>📍 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
 
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     notice_events = [e for e in st.session_state.events if e["分類"] == "📢 通知事項"]
     for ev in sorted(notice_events, key=lambda x: x["日期"]):
-        st.markdown(f'<div class="event-card notice-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>📍 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #EA4335;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="event-card notice-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #EA4335;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
