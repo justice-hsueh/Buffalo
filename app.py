@@ -175,7 +175,7 @@ else:
 
 # 側邊欄密碼驗證鎖
 st.sidebar.markdown("<h2>⚙️ 管理員控制台</h2>", unsafe_allow_html=True)
-ADMIN_PASSWORD = "dzor" 
+ADMIN_PASSWORD = "dccb" 
 password_input = st.sidebar.text_input("🔑 請輸入管理密碼：", type="password")
 
 if password_input == ADMIN_PASSWORD:
