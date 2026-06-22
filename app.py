@@ -118,7 +118,9 @@ st.markdown("""
         background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;
     }
+    /* 演出活動與通知事項的通用文字樣式 */
     .show-title-text { font-size: 24px !important; font-weight: bold !important; color: #1E40AF; margin-bottom: 8px; }
+    .notice-title-text { font-size: 24px !important; font-weight: bold !important; color: #B91C1C; margin-bottom: 8px; }
     .show-meta-text { font-size: 19px !important; color: #475569; line-height: 1.5; }
     </style>
 """, unsafe_allow_html=True)
@@ -208,8 +210,6 @@ if password_input == ADMIN_PASSWORD:
     # 新增行程
     if mode == "➕ 新增行程":
         st.sidebar.markdown("<h3>➕ 新增新行程</h3>", unsafe_allow_html=True)
-        
-        # 升級：優化為簡潔的單一選單
         date_mode = st.sidebar.selectbox("日期選擇樣式：", ["📅 單一日子", "📆 一段時間 (日期範圍)"])
         
         with st.sidebar.form("add_form", clear_on_submit=True):
@@ -218,9 +218,7 @@ if password_input == ADMIN_PASSWORD:
                 final_date_str = str(chosen_date)
                 is_date_valid = True
             else:
-                # 日曆傳入兩個日期，即開啟範圍選取功能
                 chosen_range = st.date_input("請在日曆上點選「開始日」與「結束日」：", value=[date.today(), date.today() + timedelta(days=4)])
-                # 防呆：當使用者正在點選、尚未選完兩個日期時，長度會是 1
                 if isinstance(chosen_range, list) or isinstance(chosen_range, tuple):
                     if len(chosen_range) == 2:
                         final_date_str = f"{chosen_range[0]} ~ {chosen_range[1]}"
@@ -237,8 +235,9 @@ if password_input == ADMIN_PASSWORD:
             new_time = st.text_input("輸入時間")
             new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)") if new_category == "✨ 演出活動" else ""
             
-            if new_category == "✨ 演出活動":
-                new_content = st.text_area("行程備忘（注意：第一行會自動變成演出大標題）：")
+            # 提示文字調整，讓通知事項填寫更清晰
+            if new_category in ["✨ 演出活動", "📢 通知事項"]:
+                new_content = st.text_area("行程備忘（注意：填寫的第一行會自動變成大標題放最上面）：")
             else:
                 new_content = st.text_area("行程備忘 / 準備事項（換行可分成多個圖示項目）：")
                 
@@ -309,7 +308,7 @@ else:
 # 右側主畫面呈現
 col1, col2, col3 = st.columns([1, 1, 1])
 
-# --- 欄位 1：✨ 演出活動 ---
+# --- 欄位 1：✨ 演出活動（精緻三段排版） ---
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     show_events = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動"]
@@ -332,7 +331,7 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
-# --- 欄位 2：🥁 每日進度 ---
+# --- 欄位 2：🥁 每日進度（維持原排版） ---
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     prog_events = [e for e in st.session_state.events if e["分類"] == "🥁 每日進度"]
@@ -341,11 +340,26 @@ with col2:
         items_html = render_content_items(lines)
         st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">{items_html}</div>', unsafe_allow_html=True)
 
-# --- 欄位 3：📢 通知事項 ---
+# --- 欄位 3：📢 通知事項（全新升級與演出活動格式同步） ---
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     notice_events = [e for e in st.session_state.events if e["分類"] == "📢 通知事項"]
     for ev in sorted(notice_events, key=lambda x: get_sort_date(x["日期"])):
         lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
-        items_html = render_content_items(lines)
-        st.markdown(f'<div class="event-card notice-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #EA4335;">{items_html}</div>', unsafe_allow_html=True)
+        
+        # 同步調整：第一行為通知大標題，其餘為底下說明
+        notice_title = lines[0] if lines else "未命名通知"
+        desc_lines = lines[1:] if len(lines) > 1 else []
+        items_html = render_content_items(desc_lines)
+        
+        st.markdown(f"""
+            <div class="event-card notice-style">
+                <div class="notice-title-text">📢 {notice_title}</div>
+                <div class="show-meta-text">
+                    📅 <b>日期：</b>{ev["日期"]}<br>
+                    ⏰ <b>時間：</b>{ev["時間"]}
+                </div>
+                <hr style="margin: 12px 0; border: 0; border-top: 1px dashed #EA4335;">
+                <div>{items_html}</div>
+            </div>
+        """, unsafe_allow_html=True)
