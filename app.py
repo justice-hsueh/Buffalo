@@ -83,13 +83,16 @@ def render_content_items(lines_list):
             html_output += f'<div style="margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px;"><span>{icon}</span><span>{line}</span></div>'
     return html_output
 
-# 排序輔助函式：抓最前面的那一天來當作排序基準
+# 排序輔助函式：防呆大強化，絕對不讓錯誤格式吞掉資料
 def get_sort_date(date_str):
+    if not date_str:
+        return date.max
     try:
-        first_part = date_str.split("~")[0].strip()
+        first_part = str(date_str).split("~")[0].strip()
         return datetime.strptime(first_part, "%Y-%m-%d").date()
     except:
-        return date.max
+        # 如果格式真的奇怪，就抓今天，至少讓它顯示在畫面上，絕不失蹤
+        return date.today()
 
 # 套用自訂 CSS
 st.markdown("""
@@ -118,7 +121,6 @@ st.markdown("""
         background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;
     }
-    /* 演出活動與通知事項的通用文字樣式 */
     .show-title-text { font-size: 24px !important; font-weight: bold !important; color: #1E40AF; margin-bottom: 8px; }
     .notice-title-text { font-size: 24px !important; font-weight: bold !important; color: #B91C1C; margin-bottom: 8px; }
     .show-meta-text { font-size: 19px !important; color: #475569; line-height: 1.5; }
@@ -232,10 +234,12 @@ if password_input == ADMIN_PASSWORD:
                     is_date_valid = True
                 
             new_category = st.selectbox("選擇分類", categories)
-            new_time = st.text_input("輸入時間")
+            raw_time = st.text_input("輸入時間")
+            # 防呆：如果沒填時間，自動變成 "全天"
+            new_time = raw_time if raw_time.strip() else "全天"
+            
             new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)") if new_category == "✨ 演出活動" else ""
             
-            # 提示文字調整，讓通知事項填寫更清晰
             if new_category in ["✨ 演出活動", "📢 通知事項"]:
                 new_content = st.text_area("行程備忘（注意：填寫的第一行會自動變成大標題放最上面）：")
             else:
@@ -263,9 +267,11 @@ if password_input == ADMIN_PASSWORD:
             
             with st.sidebar.form("edit_form"):
                 updated_date_str = st.text_input("修改日期 / 範圍說明（支援 ~ 符號）", selected_event["日期"])
-                curr_cat_idx = categories.index(selected_event["分類"]) if selected_event["分類"] in categories else 0
-                updated_category = st.selectbox("修改分類", categories, index=curr_cat_idx)
-                updated_time = st.text_input("修改時間", selected_event["時間"])
+                updated_category = st.selectbox("修改分類", categories, index=categories.index(selected_event["分類"]) if selected_event["分類"] in categories else 0)
+                
+                raw_updated_time = st.text_input("修改時間", selected_event["時間"])
+                updated_time = raw_updated_time if raw_updated_time.strip() else "全天"
+                
                 updated_location = st.text_input("🏠 修改演出地點", selected_event.get("地點", "未定")) if updated_category == "✨ 演出活動" else ""
                 updated_content = st.text_area("修改行程備忘", selected_event["內容"])
                 edit_submit = st.form_submit_button("💾 確認修改並儲存")
@@ -308,7 +314,7 @@ else:
 # 右側主畫面呈現
 col1, col2, col3 = st.columns([1, 1, 1])
 
-# --- 欄位 1：✨ 演出活動（精緻三段排版） ---
+# --- 欄位 1：✨ 演出活動 ---
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     show_events = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動"]
@@ -331,35 +337,18 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
-# --- 欄位 2：🥁 每日進度（維持原排版） ---
+# --- 欄位 2：🥁 每日進度（安全防吞核心程式） ---
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     prog_events = [e for e in st.session_state.events if e["分類"] == "🥁 每日進度"]
     for ev in sorted(prog_events, key=lambda x: get_sort_date(x["日期"])):
         lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
         items_html = render_content_items(lines)
-        st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">{items_html}</div>', unsafe_allow_html=True)
+        # 確保有時間欄位，若為空則顯示預設字樣
+        display_time = ev["時間"] if ev.get("時間") else "全天"
+        st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{display_time}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">{items_html}</div>', unsafe_allow_html=True)
 
-# --- 欄位 3：📢 通知事項（全新升級與演出活動格式同步） ---
+# --- 欄位 3：📢 通知事項 ---
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
-    notice_events = [e for e in st.session_state.events if e["分類"] == "📢 通知事項"]
-    for ev in sorted(notice_events, key=lambda x: get_sort_date(x["日期"])):
-        lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
-        
-        # 同步調整：第一行為通知大標題，其餘為底下說明
-        notice_title = lines[0] if lines else "未命名通知"
-        desc_lines = lines[1:] if len(lines) > 1 else []
-        items_html = render_content_items(desc_lines)
-        
-        st.markdown(f"""
-            <div class="event-card notice-style">
-                <div class="notice-title-text">📢 {notice_title}</div>
-                <div class="show-meta-text">
-                    📅 <b>日期：</b>{ev["日期"]}<br>
-                    ⏰ <b>時間：</b>{ev["時間"]}
-                </div>
-                <hr style="margin: 12px 0; border: 0; border-top: 1px dashed #EA4335;">
-                <div>{items_html}</div>
-            </div>
-        """, unsafe_allow_html=True)
+    notice_events =
