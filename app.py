@@ -19,9 +19,8 @@ def load_events():
                 return json.load(f)
         except:
             pass
-    # 預設範例資料（每一行代表一個獨立項目）
     return [
-        {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練\n注意：各分部樂譜需收齊\n請記得攜帶個人講義"},
+        {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "年度期末發表會\n注意：各分部樂譜需收齊\n請記得攜帶個人講義"},
         {"id": 2, "日期": "2026-06-26", "分類": "🥁 每日進度", "時間": "晨課時間", "內容": "打擊與鍵盤分部練習基本功\n加強弱奏節段的穩定度"},
         {"id": 3, "日期": "2026-06-27", "分類": "📢 通知事項", "時間": "全天", "內容": "放學請大家帶樂器回家複習\n準備更換演出團服的量身確認"},
     ]
@@ -43,20 +42,15 @@ def get_smart_icon(text):
     elif any(keyword in text_lower for keyword in ["服", "穿", "衣", "團服"]):
         return "👕"
     else:
-        return "📌" # 預設維持老師愛用的圖釘
+        return "📌"
 
-# 關鍵輔助函式：將包含換行的文字渲染成精美的多項目 HTML 清單
-def render_content_items(content_str):
-    if not content_str:
-        return ""
-    # 依換行符號切割成陣列，並濾掉空白行
-    lines = [line.strip() for line in content_str.split("\n") if line.strip()]
-    
+# 關鍵輔助函式：將純文字清單渲染成精美的多項目 HTML 清單
+def render_content_items(lines_list):
     html_output = ""
-    for line in lines:
-        icon = get_smart_icon(line)
-        # 用 margin-bottom 做出項目之間的美麗間距
-        html_output += f'<div style="margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px;"><span>{icon}</span><span>{line}</span></div>'
+    for line in lines_list:
+        if line.strip():
+            icon = get_smart_icon(line)
+            html_output += f'<div style="margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px;"><span>{icon}</span><span>{line}</span></div>'
     return html_output
 
 # 套用自訂 CSS：全面放大字體與美化卡片風格
@@ -93,7 +87,7 @@ st.markdown("""
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     div[data-testid="stForm"] { background-color: #F3F4F6; padding: 20px; border-radius: 10px; }
     
-    /* 標題區塊外層 */
+    /* 標題漸層文字 */
     .custom-title-container {
         display: flex;
         align-items: flex-end; 
@@ -102,26 +96,17 @@ st.markdown("""
         margin-bottom: 30px;
         padding-bottom: 5px;
     }
-    .custom-title-logo {
-        width: 80px; 
-        height: auto;
-        display: block;
-        transform: translateY(6px); 
+    .custom-title-logo { width: 80px; height: auto; display: block; transform: translateY(6px); }
+    .rainbow-text {
+        font-size: 42px !important; font-weight: bold !important; line-height: 1.0 !important;
+        margin: 0 !important; padding: 0 !important;
+        background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;
     }
     
-    /* 炫彩彩虹漸層文字 CSS */
-    .rainbow-text {
-        font-size: 42px !important;
-        font-weight: bold !important;
-        line-height: 1.0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        color: transparent;
-    }
+    /* 演出活動專用文字樣式 */
+    .show-title-text { font-size: 24px !important; font-weight: bold !important; color: #1E40AF; margin-bottom: 8px; }
+    .show-meta-text { font-size: 19px !important; color: #475569; line-height: 1.5; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -132,7 +117,7 @@ for name in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"]:
         logo_file = name
         break
 
-# --- 標題與 Logo 底部對齊渲染區 ---
+# --- 標題與 Logo 渲染 ---
 if logo_file:
     try:
         with open(logo_file, "rb") as f:
@@ -154,7 +139,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-# 從檔案載入最新行程資料
+# 從檔案載入行程資料
 if 'events' not in st.session_state:
     st.session_state.events = load_events()
 
@@ -163,7 +148,7 @@ if 'target_date' not in st.session_state:
 if 'target_title' not in st.session_state:
     st.session_state.target_title = "重要樂團活動"
 
-# 重大活動倒數顯示
+# 倒數顯示
 t_date = datetime.combine(st.session_state.target_date, datetime.min.time())
 today = datetime.now()
 days_left = (t_date - today).days + 1
@@ -173,9 +158,9 @@ if days_left >= 0:
 else:
     st.markdown(f'<div class="countdown-box">🎉 {st.session_state.target_title} 已圓滿完成！</div>', unsafe_allow_html=True)
 
-# 側邊欄密碼驗證鎖
+# 管理控制台
 st.sidebar.markdown("<h2>⚙️ 管理員控制台</h2>", unsafe_allow_html=True)
-ADMIN_PASSWORD = "dccb" 
+ADMIN_PASSWORD = "dzor" 
 password_input = st.sidebar.text_input("🔑 請輸入管理密碼：", type="password")
 
 if password_input == ADMIN_PASSWORD:
@@ -206,8 +191,11 @@ if password_input == ADMIN_PASSWORD:
             new_time = st.text_input("輸入時間")
             new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)") if new_category == "✨ 演出活動" else ""
             
-            # 溫馨提醒老師可以換行
-            new_content = st.text_area("行程備忘 / 準備事項（換行可分成多個圖示項目）：")
+            if new_category == "✨ 演出活動":
+                new_content = st.text_area("行程備忘（注意：演出活動的第一行會自動變成「活動名稱」放最上面，第二行之後為各點說明）：")
+            else:
+                new_content = st.text_area("行程備忘 / 準備事項（換行可分成多個圖示項目）：")
+                
             submit_button = st.form_submit_button("確認加入行事曆")
             
             if submit_button and new_content:
@@ -235,7 +223,7 @@ if password_input == ADMIN_PASSWORD:
                 updated_category = st.selectbox("修改分類", categories, index=curr_cat_idx)
                 updated_time = st.text_input("修改時間", selected_event["時間"])
                 updated_location = st.text_input("🏠 修改演出地點", selected_event.get("地點", "未定")) if updated_category == "✨ 演出活動" else ""
-                updated_content = st.text_area("修改行程備忘（可換行多項目）", selected_event["內容"])
+                updated_content = st.text_area("修改行程備忘", selected_event["內容"])
                 edit_submit = st.form_submit_button("💾 確認修改並儲存")
                 
                 if edit_submit:
@@ -267,24 +255,52 @@ if password_input == ADMIN_PASSWORD:
                 st.session_state.events = [e for e in st.session_state.events if e["id"] != target_id]
                 save_events(st.session_state.events)
                 st.rerun()
+else:
+    if password_input:
+        st.sidebar.error("🔒 密碼錯誤，請重新輸入。")
+    else:
+        st.sidebar.info("💡 請在上方輸入密碼以解鎖修改功能。")
 
 # 右側主畫面呈現
 col1, col2, col3 = st.columns([1, 1, 1])
 
+# --- 欄位 1：✨ 演出活動（全新排版調整） ---
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "✨ 演出活動"], key=lambda x: x["日期"]):
-        items_html = render_content_items(ev["內容"]) # 調用智慧拆分渲染
-        st.markdown(f'<div class="event-card show-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>🏠 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #0EA5E9;">{items_html}</div>', unsafe_allow_html=True)
+        lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
+        
+        # 1. 活動名稱放最上面
+        act_name = lines[0] if lines else "未命名活動"
+        # 其餘行做為下方說明
+        desc_lines = lines[1:] if len(lines) > 1 else []
+        items_html = render_content_items(desc_lines)
+        
+        st.markdown(f"""
+            <div class="event-card show-style">
+                <div class="show-title-text">🎵 {act_name}</div>
+                <div class="show-meta-text">
+                    📅 <b>日期：</b>{ev["日期"]}<br>
+                    ⏰ <b>時間：</b>{ev["時間"]}<br>
+                    🏠 <b>地點：</b>{ev.get("地點", "未定")}
+                </div>
+                <hr style="margin: 12px 0; border: 0; border-top: 1px dashed #0EA5E9;">
+                <div>{items_html}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
+# --- 欄位 2：🥁 每日進度（維持原排版） ---
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: x["日期"]):
-        items_html = render_content_items(ev["內容"]) # 調用智慧拆分渲染
+        lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
+        items_html = render_content_items(lines)
         st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">{items_html}</div>', unsafe_allow_html=True)
 
+# --- 欄位 3：📢 通知事項（維持原排版） ---
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "📢 通知事項"], key=lambda x: x["日期"]):
-        items_html = render_content_items(ev["內容"]) # 調用智慧拆分渲染
+        lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
+        items_html = render_content_items(lines)
         st.markdown(f'<div class="event-card notice-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #EA4335;">{items_html}</div>', unsafe_allow_html=True)
