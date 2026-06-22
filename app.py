@@ -43,14 +43,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 1. 於標題上方放入樂團專屬 Logo 圖檔（自動適應寬度）
-if os.path.exists("logo.jpg"):
-    st.image("logo.jpg", width=350)
+# 檢查多種可能的檔名（大寫 JPG、PNG、jpeg 等均納入檢查）
+logo_file = None
+for name in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"]:
+    if os.path.exists(name):
+        logo_file = name
+        break
+
+# 如果有找到專屬 Logo 圖片就顯示
+if logo_file:
+    st.image(logo_file, width=380)
+else:
+    # 如果 GitHub 還沒抓到圖片，先用可愛的樂團指揮圖示頂替，畫面才不會空空的
+    st.markdown("<h1 style='font-size: 60px; margin-bottom: 0;'>🎵🪗🥁</h1>", unsafe_allow_html=True)
 
 # 大標題
 st.title("大竹國小兒童樂隊行事曆")
 
-# 初始化記憶體資料（徹底修正第 64 行的字典冒號語法錯誤）
+# 初始化記憶體資料
 if 'events' not in st.session_state:
     st.session_state.events = [
         {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練（注意：分部樂譜需收齊）"},
