@@ -42,8 +42,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 標題
-st.title("🪗 大竹國小兒童樂隊行事曆")
+# 1. 大標題前的圖示改為直笛樣式
+st.title("🪈 大竹國小兒童樂隊行事曆")
 
 # 初始化記憶體資料
 if 'events' not in st.session_state:
@@ -101,10 +101,10 @@ if password_input == ADMIN_PASSWORD:
             new_category = st.selectbox("選擇分類", categories)
             new_time = st.text_input("輸入時間")
             
-            # 只有選擇演出活動，才會顯示或需要填寫地點
             new_location = ""
             if new_category == "✨ 演出活動":
-                new_location = st.text_input("📍 輸入演出地點 (例如：演藝廳)")
+                # 2. 地點欄位提示符號改為可愛的房子
+                new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)")
                 
             new_content = st.text_area("行程備忘 / 準備事項")
             submit_button = st.form_submit_button("確認加入行事曆")
@@ -134,10 +134,10 @@ if password_input == ADMIN_PASSWORD:
                 updated_category = st.selectbox("修改分類", categories, index=curr_cat_idx)
                 updated_time = st.text_input("修改時間", selected_event["時間"])
                 
-                # 只有演出活動跳出修改地點的格子
                 updated_location = ""
                 if updated_category == "✨ 演出活動":
-                    updated_location = st.text_input("📍 修改演出地點", selected_event.get("地點", "未定"))
+                    # 2. 地點欄位提示符號改為可愛的房子
+                    updated_location = st.text_input("🏠 修改演出地點", selected_event.get("地點", "未定"))
                     
                 updated_content = st.text_area("修改行程備忘", selected_event["內容"])
                 edit_submit = st.form_submit_button("💾 確認修改並儲存")
@@ -152,7 +152,7 @@ if password_input == ADMIN_PASSWORD:
                             if updated_category == "✨ 演出活動":
                                 e["地點"] = updated_location if updated_location else "未定"
                             elif "地點" in e:
-                                del e["地點"] # 切換成別的分類時就把地點欄位移除
+                                del e["地點"]
                     st.rerun()
         else:
             st.sidebar.write("目前沒有行程可供修改")
@@ -184,7 +184,8 @@ with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     show_events = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動"]
     for ev in sorted(show_events, key=lambda x: x["日期"]):
-        st.markdown(f'<div class="event-card show-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>📍 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #0EA5E9;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
+        # 2. 主畫面的演出卡片內，也同步改為可愛房子圖示
+        st.markdown(f'<div class="event-card show-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>🏠 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #0EA5E9;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
 
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
