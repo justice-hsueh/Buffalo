@@ -56,42 +56,32 @@ def get_sort_date(date_str):
     except: return date.max
 
 # --- 樣式設定 ---
-# --- 安全的標題與響應式排版 ---
-# 為了避免語法錯誤，我們將 CSS 分開放在一個簡化的區塊，並使用簡單的 HTML 結構
 st.markdown("""
-<style>
-    .mobile-title { font-size: 24px !important; font-weight: bold; color: #333; line-height: 1.2; }
-    .desktop-title { font-size: 42px !important; font-weight: bold; }
-    .title-container { display: flex; align-items: center; gap: 15px; }
-    
-    /* 當螢幕寬度小於 600px (手機)，隱藏大標題，顯示小標題 */
-    @media (max-width: 600px) {
-        .desktop-title { display: none; }
-        .title-container { flex-direction: column; text-align: center; }
-    }
-    /* 當螢幕寬度大於 600px (電腦)，隱藏小標題，顯示大標題 */
-    @media (min-width: 601px) {
-        .mobile-title { display: none; }
-    }
-</style>
+    <style>
+    .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
+    .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
+    .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
+    .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
+    hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
+    .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
+    .rainbow-text { font-size: 42px !important; font-weight: bold !important; 
+        background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .custom-title-container { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+    .custom-title-logo { width: 80px; height: auto; }
+    </style>
 """, unsafe_allow_html=True)
 
-# 標題渲染邏輯
-logo_html = ""
+if 'events' not in st.session_state: st.session_state.events = load_events()
+
+# --- 標題與 Logo 渲染 ---
+logo_file = next((n for n in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"] if os.path.exists(n)), None)
 if logo_file:
     with open(logo_file, "rb") as f:
         encoded = base64.b64encode(f.read()).decode()
-        logo_html = f'<img src="data:image/jpeg;base64,{encoded}" width="80">'
-
-st.markdown(f'''
-    <div class="title-container">
-        {logo_html}
-        <div>
-            <div class="desktop-title rainbow-text">大竹國小兒童樂隊行事曆</div>
-            <div class="mobile-title">大竹國小兒童樂隊<br>行事曆</div>
-        </div>
-    </div>
-''', unsafe_allow_html=True)
+    st.markdown(f'''<div class="custom-title-container"><img class="custom-title-logo" src="data:image/jpeg;base64,{encoded}"><span class="rainbow-text">大竹國小兒童樂隊行事曆</span></div>''', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
 
 # --- 側邊欄控制台 ---
 st.sidebar.markdown("## ⚙️ 管理員控制台")
