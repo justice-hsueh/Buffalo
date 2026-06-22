@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 import os
+import base64
 
 # 設定網頁標題與整體風格
 st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide")
@@ -13,7 +14,6 @@ st.markdown("""
         font-size: 20px !important;
         font-weight: 500 !important;
     }
-    h1 { font-size: 42px !important; font-weight: bold !important; color: #1E3A8A; margin: 0 !important; padding: 0 !important; line-height: 1.1; }
     h2 { font-size: 32px !important; font-weight: bold !important; color: #0D9488; }
     h3 { font-size: 26px !important; font-weight: bold !important; }
     .stButton>button {
@@ -41,37 +41,65 @@ st.markdown("""
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     div[data-testid="stForm"] { background-color: #F3F4F6; padding: 20px; border-radius: 10px; }
     
-    /* 調整圖片區塊的預設間距，讓對齊更精準 */
-    [data-testid="stHorizontalBlock"] {
-        margin-bottom: 20px !important;
+    /* 終極標題對齊 CSS 控制 */
+    .custom-title-container {
+        display: flex;
+        align-items: flex-end; /* 依底部分配對齊 */
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 30px;
+        padding-bottom: 5px;
+    }
+    .custom-title-logo {
+        width: 80px; /* 縮小到跟字高更匹配 */
+        height: auto;
+        display: block;
+        transform: translateY(6px); /* 關鍵修正：強制將 Logo 往下沉 6 像素，對齊黑字下緣 */
+    }
+    .custom-title-text {
+        font-size: 42px !important;
+        font-weight: bold !important;
+        color: #1E3A8A !important;
+        line-height: 1.0 !important; /* 消除文字下方的預設空白行高 */
+        margin: 0 !important;
+        padding: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 檢查多種可能的檔名（大寫 JPG、PNG、jpeg 等均納入檢查）
+# 檢查多種可能的檔名
 logo_file = None
 for name in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"]:
     if os.path.exists(name):
         logo_file = name
         break
 
-# --- 標題與 Logo 下緣對齊專區 ---
+# --- 終極標題與 Logo 底部對齊渲染區 ---
 if logo_file:
-    # 關鍵修正：加入 vertical_alignment="bottom" 確保兩者底部絕對對齊
-    col_logo, col_title = st.columns([1, 15], vertical_alignment="bottom")
-    with col_logo:
-        # 微調寬度到 85，使其跟 42px 的標題字高更貼近
-        st.image(logo_file, width=85)
-    with col_title:
-        st.markdown("<h1>大竹國小兒童樂隊行事曆</h1>", unsafe_allow_html=True)
+    try:
+        # 將圖片轉為 Base64 碼，直接用 HTML 進行完美的位置像素控制
+        with open(logo_file, "rb") as f:
+            data = f.read()
+            encoded = base64.b64encode(data).decode()
+        
+        st.markdown(f"""
+            <div class="custom-title-container">
+                <img class="custom-title-logo" src="data:image/jpeg;base64,{encoded}">
+                <span class="custom-title-text">大竹國小兒童樂隊行事曆</span>
+            </div>
+        """, unsafe_allow_html=True)
+    except Exception as e:
+        # 萬一轉換失敗的備用方案
+        st.title("大竹國小兒童樂隊行事曆")
 else:
     # 如果沒抓到圖片，則顯示前置音樂符號與大標題底部對齊
-    col_icon, col_title = st.columns([1, 20], vertical_alignment="bottom")
-    with col_icon:
-        st.markdown("<span style='font-size: 42px; line-height: 1;'>🎵</span>", unsafe_allow_html=True)
-    with col_title:
-        st.markdown("<h1>大竹國小兒童樂隊行事曆</h1>", unsafe_allow_html=True)
-# ----------------------------
+    st.markdown("""
+        <div class="custom-title-container">
+            <span style="font-size: 42px; line-height: 1; transform: translateY(2px);">🎵</span>
+            <span class="custom-title-text">大竹國小兒童樂隊行事曆</span>
+        </div>
+    """, unsafe_allow_html=True)
+# ----------------------------------
 
 # 初始化記憶體資料
 if 'events' not in st.session_state:
