@@ -111,7 +111,7 @@ if password_input == ADMIN_PASSWORD:
                 })
                 st.rerun()
 
-    # 修改行程
+    # 修改行程（已修正 123 行的打字語法錯誤）
     elif mode == "✏️ 修改行程":
         st.sidebar.markdown("<h3>✏️ 修改現有行程</h3>", unsafe_allow_html=True)
         if st.session_state.events:
@@ -120,7 +120,7 @@ if password_input == ADMIN_PASSWORD:
             selected_event = edit_options[selected_text]
             
             with st.sidebar.form("edit_form"):
-                curr_date = datetime.strptime(selected_event["["日期"]"], "%Y-%m-%d") if isinstance(selected_event["日期"], str) else selected_event["日期"]
+                curr_date = datetime.strptime(selected_event["日期"], "%Y-%m-%d") if isinstance(selected_event["日期"], str) else selected_event["日期"]
                 updated_date = st.date_input("修改日期", curr_date)
                 curr_cat_idx = categories.index(selected_event["分類"]) if selected_event["分類"] in categories else 0
                 updated_category = st.selectbox("修改分類", categories, index=curr_cat_idx)
