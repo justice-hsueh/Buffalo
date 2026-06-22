@@ -53,28 +53,29 @@ def render_content_items(lines_list):
     html = ""
     for line in lines_list:
         if line.strip():
-            html += f'<div style="margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px;"><span>{get_smart_icon(line)}</span><span>{line}</span></div>'
+            html += f'<div style="margin-bottom: 2px; display: flex; align-items: flex-start; gap: 6px;"><span>{get_smart_icon(line)}</span><span>{line}</span></div>'
     return html
 
 def get_sort_date(date_str):
     try: return datetime.strptime(str(date_str).split("~")[0].strip(), "%Y-%m-%d").date()
     except: return date.max
 
-# CSS
+# --- CSS 優化：縮小分隔線間距 ---
 st.markdown("""
     <style>
-    .event-card { padding: 15px 20px; border-radius: 8px; margin-bottom: 12px; font-size: 20px !important; }
+    .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
     .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
     .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
-    .title-text { font-size: 24px !important; font-weight: bold !important; margin-bottom: 8px; }
+    /* 縮小分隔線間距的核心代碼 */
+    hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
+    .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
     </style>
 """, unsafe_allow_html=True)
 
-# 狀態初始化
 if 'events' not in st.session_state: st.session_state.events = load_events()
 
-# --- 側邊欄管理 (強制顯示) ---
+# --- 側邊欄 ---
 st.sidebar.markdown("## ⚙️ 管理員控制台")
 password_input = st.sidebar.text_input("🔑 請輸入管理密碼：", type="password")
 
@@ -82,7 +83,6 @@ if password_input == ADMIN_PASSWORD:
     st.sidebar.success("🔓 已解鎖編輯")
     mode = st.sidebar.radio("操作項目：", ["➕ 新增行程", "✏️ 修改行程", "🗑️ 刪除行程"])
     
-    # 新增 (包含日期範圍選取)
     if mode == "➕ 新增行程":
         with st.sidebar.form("add_form", clear_on_submit=True):
             date_mode = st.selectbox("日期模式", ["單日", "日期範圍"])
@@ -119,7 +119,7 @@ with col1:
             📅 {ev["日期"]} | ⏰ {ev["時間"]}<br>🏠 {ev.get("地點", "未定")}
             <hr>{render_content_items(lines[1:])}</div>""", unsafe_allow_html=True)
 
-# 2. 每日進度 (只顯示日期)
+# 2. 每日進度
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: get_sort_date(x["日期"])):
