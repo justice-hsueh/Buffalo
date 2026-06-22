@@ -19,7 +19,7 @@ def load_admin_password():
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 config = json.load(f)
-                return config.get("admin_password", "dzor")
+                return config.get("admin_password", "dccb")
         except:
             pass
     # 如果檔案不存在，自動建立並寫入預設密碼
