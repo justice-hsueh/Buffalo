@@ -47,7 +47,7 @@ st.markdown("""
 # 標題修改為「大竹國小兒童樂隊行事曆」
 st.title("🪗 大竹國小兒童樂隊行事曆")
 
-# 初始化記憶體資料（加入了 地點 欄目）
+# 初始化記憶體資料
 if 'events' not in st.session_state:
     st.session_state.events = [
         {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練（注意：分部樂譜需收齊）"},
@@ -60,5 +60,30 @@ if 'target_date' not in st.session_state:
 if 'target_title' not in st.session_state:
     st.session_state.target_title = "重要樂團活動"
 
-# 重大活動倒數顯示
-t_date = datetime.combine(st
+# 重大活動倒數顯示（修正了此處的換行括號錯誤）
+t_date = datetime.combine(st.session_state.target_date, datetime.min.time())
+today = datetime.now()
+days_left = (t_date - today).days + 1
+
+if days_left >= 0:
+    st.markdown(f"""
+        <div class="countdown-box">
+            ⏰ 距離 <span style="color: #1E3A8A;">{st.session_state.target_title}（{st.session_state.target_date.strftime('%Y/%m/%d')}）</span> 還有 <span style="font-size: 36px; color: #DC2626;">{days_left}</span> 天
+        </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown(f'<div class="countdown-box">🎉 {st.session_state.target_title} 已圓滿完成！</div>', unsafe_allow_html=True)
+
+# 側邊欄密碼驗證鎖
+st.sidebar.markdown("<h2>⚙️ 管理員控制台</h2>", unsafe_allow_html=True)
+
+ADMIN_PASSWORD = "dzor" 
+
+password_input = st.sidebar.text_input("🔑 請輸入管理密碼：", type="password")
+
+if password_input == ADMIN_PASSWORD:
+    st.sidebar.success("🔓 密碼正確！已開啟編輯權限")
+    st.sidebar.markdown("---")
+    
+    # 允許修改重大活動倒數
+    st.sidebar.markdown("<h3>🎯
