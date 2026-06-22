@@ -10,8 +10,36 @@ st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide"
 
 # 設定資料儲存的檔案路徑
 DATA_FILE = "events.json"
+CONFIG_FILE = "config.json"
 
-# 讀取檔案資料的函式
+# --- 密碼與設定檔管理機制 ---
+def load_admin_password():
+    # 如果檔案存在，讀取裡面的密碼
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                return config.get("admin_password", "dzor")
+        except:
+            pass
+    # 如果檔案不存在，自動建立並寫入預設密碼
+    default_config = {"admin_password": "dzor"}
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_config, f, ensure_ascii=False, indent=4)
+    except:
+        pass
+    return "dzor"
+
+def save_admin_password(new_password):
+    config = {"admin_password": new_password}
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=4)
+
+# 載入當前鎖定的密碼
+ADMIN_PASSWORD = load_admin_password()
+
+# 讀取行程檔案資料的函式
 def load_events():
     if os.path.exists(DATA_FILE):
         try:
@@ -53,7 +81,7 @@ def render_content_items(lines_list):
             html_output += f'<div style="margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px;"><span>{icon}</span><span>{line}</span></div>'
     return html_output
 
-# 套用自訂 CSS：全面放大字體與美化卡片風格
+# 套用自訂 CSS
 st.markdown("""
     <style>
     html, body, [data-testid="stWidgetLabel"] p, .stSelectbox, .stDateInput {
@@ -62,40 +90,19 @@ st.markdown("""
     }
     h2 { font-size: 32px !important; font-weight: bold !important; color: #0D9488; }
     h3 { font-size: 26px !important; font-weight: bold !important; }
-    .stButton>button {
-        font-size: 22px !important;
-        padding: 10px 24px !important;
-        color: white !important;
-    }
+    .stButton>button { font-size: 22px !important; padding: 10px 24px !important; color: white !important; }
     .countdown-box {
-        background-color: #FEF3C7;
-        padding: 20px;
-        border-radius: 12px;
-        border-left: 8px solid #F59E0B;
-        font-size: 28px !important;
-        font-weight: bold;
-        margin-bottom: 25px;
+        background-color: #FEF3C7; padding: 20px; border-radius: 12px; border-left: 8px solid #F59E0B;
+        font-size: 28px !important; font-weight: bold; margin-bottom: 25px;
     }
-    .event-card {
-        padding: 15px 20px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-        font-size: 22px !important;
-    }
+    .event-card { padding: 15px 20px; border-radius: 8px; margin-bottom: 12px; font-size: 22px !important; }
     .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
     .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     div[data-testid="stForm"] { background-color: #F3F4F6; padding: 20px; border-radius: 10px; }
     
     /* 標題漸層文字 */
-    .custom-title-container {
-        display: flex;
-        align-items: flex-end; 
-        gap: 15px;
-        margin-top: 10px;
-        margin-bottom: 30px;
-        padding-bottom: 5px;
-    }
+    .custom-title-container { display: flex; align-items: flex-end; gap: 15px; margin-top: 10px; margin-bottom: 30px; padding-bottom: 5px; }
     .custom-title-logo { width: 80px; height: auto; display: block; transform: translateY(6px); }
     .rainbow-text {
         font-size: 42px !important; font-weight: bold !important; line-height: 1.0 !important;
@@ -139,7 +146,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-# 從檔案載入行程資料
+# 載入最新行程
 if 'events' not in st.session_state:
     st.session_state.events = load_events()
 
@@ -160,11 +167,22 @@ else:
 
 # 管理控制台
 st.sidebar.markdown("<h2>⚙️ 管理員控制台</h2>", unsafe_allow_html=True)
-ADMIN_PASSWORD = "dccb" 
 password_input = st.sidebar.text_input("🔑 請輸入管理密碼：", type="password")
 
 if password_input == ADMIN_PASSWORD:
     st.sidebar.success("🔓 密碼正確！已開啟編輯權限")
+    st.sidebar.markdown("---")
+    
+    # 讓老師可以直接在網頁上修改密碼，且永不丟失
+    st.sidebar.markdown("<h3>🔐 安全設定</h3>", unsafe_allow_html=True)
+    with st.sidebar.form("password_form"):
+        new_pwd_input = st.text_input("設定全新管理密碼", type="password")
+        confirm_pwd_button = st.form_submit_button("💾 確認變更密碼")
+        if confirm_pwd_button and new_pwd_input:
+            save_admin_password(new_pwd_input)
+            st.sidebar.success("密碼已安全寫入資料庫！將自動重新載入...")
+            st.rerun()
+
     st.sidebar.markdown("---")
     
     # 設定倒數活動
@@ -192,7 +210,7 @@ if password_input == ADMIN_PASSWORD:
             new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)") if new_category == "✨ 演出活動" else ""
             
             if new_category == "✨ 演出活動":
-                new_content = st.text_area("行程備忘（注意：演出活動的第一行會自動變成「活動名稱」放最上面，第二行之後為各點說明）：")
+                new_content = st.text_area("行程備忘（注意：第一行會自動變成演出大標題）：")
             else:
                 new_content = st.text_area("行程備忘 / 準備事項（換行可分成多個圖示項目）：")
                 
@@ -264,15 +282,12 @@ else:
 # 右側主畫面呈現
 col1, col2, col3 = st.columns([1, 1, 1])
 
-# --- 欄位 1：✨ 演出活動（全新排版調整） ---
+# --- 欄位 1：✨ 演出活動（優化三段排版） ---
 with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "✨ 演出活動"], key=lambda x: x["日期"]):
         lines = [line.strip() for line in ev["內容"].split("\n") if line.strip()]
-        
-        # 1. 活動名稱放最上面
         act_name = lines[0] if lines else "未命名活動"
-        # 其餘行做為下方說明
         desc_lines = lines[1:] if len(lines) > 1 else []
         items_html = render_content_items(desc_lines)
         
@@ -289,7 +304,7 @@ with col1:
             </div>
         """, unsafe_allow_html=True)
 
-# --- 欄位 2：🥁 每日進度（維持原排版） ---
+# --- 欄位 2：🥁 每日進度 ---
 with col2:
     st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: x["日期"]):
@@ -297,7 +312,7 @@ with col2:
         items_html = render_content_items(lines)
         st.markdown(f'<div class="event-card progress-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #70AD47;">{items_html}</div>', unsafe_allow_html=True)
 
-# --- 欄位 3：📢 通知事項（維持原排版） ---
+# --- 欄位 3：📢 通知事項 ---
 with col3:
     st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
     for ev in sorted([e for e in st.session_state.events if e["分類"] == "📢 通知事項"], key=lambda x: x["日期"]):
