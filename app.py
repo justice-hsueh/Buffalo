@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
+import os
 
 # 設定網頁標題與整體風格
 st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide")
@@ -12,7 +13,7 @@ st.markdown("""
         font-size: 20px !important;
         font-weight: 500 !important;
     }
-    h1 { font-size: 42px !important; font-weight: bold !important; color: #1E3A8A; }
+    h1 { font-size: 42px !important; font-weight: bold !important; color: #1E3A8A; margin-top: 10px; }
     h2 { font-size: 32px !important; font-weight: bold !important; color: #0D9488; }
     h3 { font-size: 26px !important; font-weight: bold !important; }
     .stButton>button {
@@ -42,10 +43,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 1. 大標題前的圖示改為直笛樣式
-st.title("🪈 大竹國小兒童樂隊行事曆")
+# 1. 於標題上方放入樂團專屬 Logo 圖檔（自動適應寬度）
+if os.path.exists("logo.jpg"):
+    st.image("logo.jpg", width=350)
 
-# 初始化記憶體資料
+# 大標題
+st.title("大竹國小兒童樂隊行事曆")
+
+# 初始化記憶體資料（徹底修正第 64 行的字典冒號語法錯誤）
 if 'events' not in st.session_state:
     st.session_state.events = [
         {"id": 1, "日期": "2026-06-25", "分類": "✨ 演出活動", "時間": "13:30 - 15:30", "地點": "學校活動中心", "內容": "全團總排練（注意：分部樂譜需收齊）"},
@@ -103,7 +108,6 @@ if password_input == ADMIN_PASSWORD:
             
             new_location = ""
             if new_category == "✨ 演出活動":
-                # 2. 地點欄位提示符號改為可愛的房子
                 new_location = st.text_input("🏠 輸入演出地點 (例如：演藝廳)")
                 
             new_content = st.text_area("行程備忘 / 準備事項")
@@ -136,7 +140,6 @@ if password_input == ADMIN_PASSWORD:
                 
                 updated_location = ""
                 if updated_category == "✨ 演出活動":
-                    # 2. 地點欄位提示符號改為可愛的房子
                     updated_location = st.text_input("🏠 修改演出地點", selected_event.get("地點", "未定"))
                     
                 updated_content = st.text_area("修改行程備忘", selected_event["內容"])
@@ -170,7 +173,7 @@ if password_input == ADMIN_PASSWORD:
                 st.session_state.events = [e for e in st.session_state.events if e["id"] != target_id]
                 st.rerun()
         else:
-            st.sidebar.write("目前沒有行程可供刪除")
+            st.sidebar.write("放置行程已清空")
 else:
     if password_input:
         st.sidebar.error("🔒 密碼錯誤，請重新輸入。")
@@ -184,7 +187,6 @@ with col1:
     st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
     show_events = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動"]
     for ev in sorted(show_events, key=lambda x: x["日期"]):
-        # 2. 主畫面的演出卡片內，也同步改為可愛房子圖示
         st.markdown(f'<div class="event-card show-style"><strong>📅 【{ev["日期"]}】</strong><br>⏰ <b>時間：</b>{ev["時間"]}<br>🏠 <b>地點：</b>{ev.get("地點", "未定")}<br><hr style="margin: 8px 0; border: 0; border-top: 1px dashed #0EA5E9;">📌 {ev["內容"]}</div>', unsafe_allow_html=True)
 
 with col2:
