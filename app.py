@@ -26,22 +26,22 @@ def parse_date(date_str):
     try: return datetime.strptime(d, "%Y-%m-%d").date()
     except: return date(1900, 1, 1)
 
-# 初始化與自動清理過期資料
+# 初始化並自動清理
 if 'events' not in st.session_state:
-    raw_data = load_events()
+    raw = load_events()
     today = date.today()
-    st.session_state.events = [e for e in raw_data if parse_date(e["日期"]) >= today]
+    st.session_state.events = [e for e in raw if parse_date(e["日期"]) >= today]
 
-# --- 標題 ---
+# --- 標題 (使用固定樣式) ---
 st.markdown("""
     <div style="background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
                 -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                font-size: 42px; font-weight: bold; margin-bottom: 20px;">
+                font-size: 40px; font-weight: bold; margin-bottom: 20px;">
         🎵 大竹國小兒童樂隊行事曆
     </div>
 """, unsafe_allow_html=True)
 
-# --- 側邊欄 ---
+# --- 側邊欄管理員控制台 ---
 st.sidebar.markdown("### ⚙️ 管理員控制台")
 if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb":
     mode = st.sidebar.radio("操作項目", ["新增行程", "修改行程", "刪除行程"])
@@ -50,11 +50,11 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
         with st.sidebar.form("add_f"):
             cat = st.selectbox("分類", list(COLORS.keys()))
             d_start = st.date_input("開始日期")
-            is_range = st.checkbox("啟用結束日期 (一段時間)")
-            f_date = f"{d_start} ~ {st.date_input('結束日期')}" if is_range else str(d_start)
+            d_end = st.date_input("結束日期 (與開始日同即為單日)")
             time_in = st.text_input("時間")
             cont = st.text_area("內容")
             if st.form_submit_button("新增"):
+                f_date = f"{d_start} ~ {d_end}" if d_start != d_end else str(d_start)
                 st.session_state.events.append({"分類": cat, "日期": f_date, "時間": time_in, "內容": cont})
                 with open("events.json", "w", encoding="utf-8") as f:
                     json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
@@ -64,7 +64,7 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
         opts = {f"{e['日期']} | {e['內容'][:10]}": e for e in st.session_state.events}
         sel = st.sidebar.selectbox("選行程", list(opts.keys()))
         target = opts[sel]
-        new_d = st.sidebar.text_input("修改日期", target['日期'])
+        new_d = st.sidebar.text_input("修改日期 (格式: YYYY-MM-DD 或 日期 ~ 日期)", target['日期'])
         new_c = st.sidebar.text_area("修改內容", target['內容'])
         if st.sidebar.button("儲存修改"):
             target.update({'日期': new_d, '內容': new_c})
@@ -80,7 +80,7 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
             st.rerun()
 
-# --- 主畫面 ---
+# --- 主畫面渲染 ---
 col1, col2, col3 = st.columns(3)
 for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
     with col:
