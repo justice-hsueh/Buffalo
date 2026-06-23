@@ -60,8 +60,9 @@ st.markdown("""
     <style>
     /* 手機版響應式設定 */
     @media (max-width: 600px) {
-        .rainbow-text { font-size: 26px !important; }
-        .custom-title-logo { width: 50px !important; }
+        .rainbow-text { font-size: 24px !important; line-height: 1.2 !important; }
+        .custom-title-logo { width: 45px !important; }
+        .custom-title-container { gap: 10px !important; margin-bottom: 15px !important; }
     }
     .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
     .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
