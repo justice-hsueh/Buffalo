@@ -106,26 +106,22 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
             lines = content_raw.splitlines() if content_raw else []
             title = lines[0] if lines else "無標題"
             
-            # 顯示日期與星期
             date_obj = parse_date(ev['日期'])
             weekday = get_weekday(date_obj) if date_obj != date(1900, 1, 1) else ""
             display_date = f"{ev['日期']} ({weekday})" if weekday else ev['日期']
             
-            details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
-            details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
-            
+            # 使用 Markdown 原生分隔線，修正 HTML 顯示雜訊
+            details = "\n\n".join(lines[1:]) if len(lines) > 1 else ""
             loc_val = ev.get('地點', '')
-            loc_html = f"<div style='font-size: 14px; margin-top: 3px;'>📍 {loc_val}</div>" if loc_val else ""
+            
+            # 組裝 Markdown 文字
+            md_output = f"#### 🔹 {title}\n---\n📅 {display_date} | ⏰ {ev['時間']}"
+            if loc_val: md_output += f"\n📍 {loc_val}"
+            if details: md_output += f"\n---\n{details}"
             
             st.markdown(f"""
                 <div style="background-color: {c['bg']}; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
                             border-left: 8px solid {c['border']}; color: #000000;">
-                    <div style="font-size: 19px; font-weight: bold; margin-bottom: 5px;">🔹 {title}</div>
-                    <hr style="border: 0; border-top: 1px solid #aaa; margin: 8px 0;">
-                    <div style="font-size: 14px; font-weight: 600; color: #333;">
-                        📅 {display_date} | ⏰ {ev['時間']}
-                    </div>
-                    {loc_html}
-                    {details_html}
+                    {md_output}
                 </div>
             """, unsafe_allow_html=True)
