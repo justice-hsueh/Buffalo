@@ -102,12 +102,9 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
             lines = content_raw.splitlines() if content_raw else []
             title = lines[0] if lines else "無標題"
             
-            # 演出活動才顯示詳細內容，其他只顯示標題
-            if cat == "✨ 演出活動":
-                details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
-                details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
-            else:
-                details_html = ""
+            # --- 修正：詳細內容現在會正確顯示 ---
+            details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
+            details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
             
             loc_val = ev.get('地點', '')
             loc_html = f"<div style='font-size: 14px; margin-top: 3px;'>📍 {loc_val}</div>" if loc_val else ""
