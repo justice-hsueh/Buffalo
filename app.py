@@ -18,7 +18,6 @@ def load_events():
         try:
             with open("events.json", "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # 強制補齊所有欄位，防止舊資料讀取錯誤
                 for item in data:
                     if '地點' not in item: item['地點'] = ""
                     if '時間' not in item: item['時間'] = ""
@@ -92,7 +91,7 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
             st.rerun()
 
-# --- 主畫面 ---
+# --- 主畫面渲染 ---
 col1, col2, col3 = st.columns(3)
 for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
     with col:
@@ -102,11 +101,16 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
             content_raw = ev.get('內容', '')
             lines = content_raw.splitlines() if content_raw else []
             title = lines[0] if lines else "無標題"
-            details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
+            
+            # 演出活動才顯示詳細內容，其他只顯示標題
+            if cat == "✨ 演出活動":
+                details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
+                details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
+            else:
+                details_html = ""
             
             loc_val = ev.get('地點', '')
             loc_html = f"<div style='font-size: 14px; margin-top: 3px;'>📍 {loc_val}</div>" if loc_val else ""
-            details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
             
             st.markdown(f"""
                 <div style="background-color: {c['bg']}; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
