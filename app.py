@@ -18,8 +18,11 @@ def load_events():
         try:
             with open("events.json", "r", encoding="utf-8") as f:
                 data = json.load(f)
+                # 強制補齊所有欄位，防止舊資料讀取錯誤
                 for item in data:
                     if '地點' not in item: item['地點'] = ""
+                    if '時間' not in item: item['時間'] = ""
+                    if '內容' not in item: item['內容'] = ""
                 return data
         except: return []
     return []
@@ -73,7 +76,7 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
         new_d = st.sidebar.text_input("修改日期", target['日期'])
         new_t = st.sidebar.text_input("修改時間", target.get('時間', ''))
         new_l = st.sidebar.text_input("修改地點", target.get('地點', ''))
-        new_c = st.sidebar.text_area("修改內容", target['內容'])
+        new_c = st.sidebar.text_area("修改內容", target.get('內容', ''))
         
         if st.sidebar.button("儲存修改"):
             target.update({'分類': new_cat, '日期': new_d, '時間': new_t, '地點': new_l, '內容': new_c})
@@ -96,7 +99,8 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
         st.subheader(cat)
         for ev in sorted([e for e in st.session_state.events if e["分類"] == cat], key=lambda x: parse_date(x["日期"])):
             c = COLORS[cat]
-            lines = ev.get('內容', '').splitlines()
+            content_raw = ev.get('內容', '')
+            lines = content_raw.splitlines() if content_raw else []
             title = lines[0] if lines else "無標題"
             details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
             
