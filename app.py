@@ -20,15 +20,12 @@ def load_events():
     return []
 
 def parse_date(date_str):
-    # 處理區間格式 (取 ~ 前面的日期進行排序)
     d = str(date_str).split("~")[0].strip()[:10]
     try: return datetime.strptime(d, "%Y-%m-%d").date()
     except: return date(1900, 1, 1)
 
 if 'events' not in st.session_state:
-    raw = load_events()
-    today = date.today()
-    st.session_state.events = [e for e in raw if parse_date(e["日期"]) >= today]
+    st.session_state.events = load_events()
 
 # --- 標題 ---
 st.markdown("""
@@ -47,8 +44,12 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
     if mode == "新增行程":
         with st.sidebar.form("add_f"):
             cat = st.selectbox("分類", list(COLORS.keys()))
-            # 讓老師自行決定輸入格式
-            f_date = st.text_input("日期 (單一日期請填 YYYY-MM-DD，區間請填 YYYY-MM-DD ~ YYYY-MM-DD)")
+            is_range = st.checkbox("啟用日期區間")
+            if is_range:
+                d_range = st.date_input("選擇日期區間", [])
+                f_date = f"{d_range[0]} ~ {d_range[1]}" if len(d_range) == 2 else str(d_range[0])
+            else:
+                f_date = str(st.date_input("選擇日期"))
             time_in = st.text_input("時間")
             cont = st.text_area("內容")
             if st.form_submit_button("新增"):
@@ -56,17 +57,18 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
                 with open("events.json", "w", encoding="utf-8") as f:
                     json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
                 st.rerun()
+
     elif mode == "修改行程":
         opts = {f"{e['日期']} | {e['內容'][:10]}": e for e in st.session_state.events}
         sel = st.sidebar.selectbox("選行程", list(opts.keys()))
         new_d = st.sidebar.text_input("修改日期", opts[sel]['日期'])
         new_c = st.sidebar.text_area("修改內容", opts[sel]['內容'])
         if st.sidebar.button("儲存修改"):
-            opts[sel]['日期'] = new_d
-            opts[sel]['內容'] = new_c
+            opts[sel].update({'日期': new_d, '內容': new_c})
             with open("events.json", "w", encoding="utf-8") as f:
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
             st.rerun()
+
     elif mode == "刪除行程":
         to_del = st.sidebar.selectbox("選行程", [f"{e['日期']} | {e['內容'][:10]}" for e in st.session_state.events])
         if st.sidebar.button("確認刪除"):
