@@ -17,7 +17,12 @@ def load_events():
     if os.path.exists("events.json"):
         try:
             with open("events.json", "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # 確保每一筆資料都有地點欄位，沒有的話補上空字串
+                for item in data:
+                    if '地點' not in item:
+                        item['地點'] = ""
+                return data
         except: return []
     return []
 
@@ -28,9 +33,9 @@ def parse_date(date_str):
 
 # 初始化並自動清理過期資料
 if 'events' not in st.session_state:
-    raw = load_events()
+    st.session_state.events = load_events()
     today = date.today()
-    st.session_state.events = [e for e in raw if parse_date(e["日期"]) >= today]
+    st.session_state.events = [e for e in st.session_state.events if parse_date(e["日期"]) >= today]
 
 # --- 標題 ---
 st.markdown("""
@@ -52,7 +57,7 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
             d_start = st.date_input("開始日期")
             d_end = st.date_input("結束日期 (僅需一段時間時點選)")
             time_in = st.text_input("時間")
-            loc_in = st.text_input("地點") # 新增地點欄位
+            loc_in = st.text_input("地點")
             cont = st.text_area("內容 (第一行標題，第二行起為詳細內容)")
             if st.form_submit_button("新增"):
                 f_date = f"{d_start} ~ {d_end}" if d_start != d_end else str(d_start)
@@ -69,10 +74,10 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
         new_cat = st.sidebar.selectbox("修改分類", list(COLORS.keys()), index=list(COLORS.keys()).index(target['分類']))
         new_d = st.sidebar.text_input("修改日期", target['日期'])
         new_t = st.sidebar.text_input("修改時間", target.get('時間', ''))
-        new_l = st.sidebar.text_input("修改地點", target.get('地點', '')) # 新增地點修改
+        new_l = st.sidebar.text_input("修改地點", target.get('地點', ''))
         new_c = st.sidebar.text_area("修改內容", target['內容'])
         
-        if st.button("儲存修改"):
+        if st.sidebar.button("儲存修改"):
             target.update({'分類': new_cat, '日期': new_d, '時間': new_t, '地點': new_l, '內容': new_c})
             with open("events.json", "w", encoding="utf-8") as f:
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
@@ -97,9 +102,9 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
             title = lines[0] if lines else "無標題"
             details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
             
-            # 處理地點顯示：如果有地點就顯示，沒有則隱藏地點行
-            location_line = f"📍 {ev.get('地點', '')}" if ev.get('地點') else ""
-            location_html = f"<div style='font-size: 14px; margin-top: 3px;'>{location_line}</div>" if location_line else ""
+            # 安全顯示地點，若無地點則不顯示該行
+            loc_val = ev.get('地點', '')
+            location_html = f"<div style='font-size: 14px; margin-top: 3px;'>📍 {loc_val}</div>" if loc_val else ""
             
             st.markdown(f"""
                 <div style="background-color: {c['bg']}; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
