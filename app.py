@@ -51,8 +51,8 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
             cat = st.selectbox("分類", list(COLORS.keys()))
             d_start = st.date_input("開始日期")
             d_end = st.date_input("結束日期 (僅需一段時間時點選)")
-            time_in = st.text_input("時間")
-            cont = st.text_area("內容")
+            time_in = st.text_input("時間 (可填地點)")
+            cont = st.text_area("內容 (第一行標題，第二行起為詳細內容)")
             if st.form_submit_button("新增"):
                 f_date = f"{d_start} ~ {d_end}" if d_start != d_end else str(d_start)
                 st.session_state.events.append({"分類": cat, "日期": f_date, "時間": time_in, "內容": cont})
@@ -91,10 +91,19 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
         # 顯示該分類下的所有有效行程
         for ev in sorted([e for e in st.session_state.events if e["分類"] == cat], key=lambda x: parse_date(x["日期"])):
             c = COLORS[cat]
+            lines = ev.get('內容', '').splitlines()
+            title = lines[0] if lines else "無標題"
+            details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
+            
             st.markdown(f"""
                 <div style="background-color: {c['bg']}; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
                             border-left: 8px solid {c['border']}; color: #000000;">
-                    <div style="font-size: 18px; font-weight: bold;">{ev.get('內容', '').replace('\n', '<br>')}</div>
-                    <div style="font-size: 14px; margin-top: 8px; opacity: 0.8;">📅 {ev['日期']} | ⏰ {ev['時間']}</div>
+                    <div style="font-size: 19px; font-weight: bold; margin-bottom: 5px;">{title}</div>
+                    <hr style="border: 0; border-top: 1px solid #aaa; margin: 8px 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: #333;">
+                        📅 {ev['日期']} | ⏰ {ev['時間']}
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #aaa; margin: 8px 0;">
+                    <div style="font-size: 15px; color: #444;">{details}</div>
                 </div>
             """, unsafe_allow_html=True)
