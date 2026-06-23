@@ -58,23 +58,30 @@ def get_sort_date(date_str):
 # --- 樣式設定 ---
 st.markdown("""
     <style>
-    /* 手機版響應式設定 */
-    @media (max-width: 600px) {
-        .rainbow-text { font-size: 24px !important; line-height: 1.2 !important; }
-        .custom-title-logo { width: 45px !important; }
-        .custom-title-container { gap: 10px !important; margin-bottom: 15px !important; }
-    }
     .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
     .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
     .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
     .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
     hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
     .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
-    .rainbow-text { font-size: 42px !important; font-weight: bold !important; 
+    
+    /* 標題自動縮放設定：在手機與電腦間保持單行並靈活伸縮 */
+    .rainbow-text { 
+        font-size: clamp(18px, 5vw, 42px) !important; 
+        font-weight: bold !important; 
+        white-space: nowrap; 
         background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        -webkit-background-clip: text; 
+        -webkit-text-fill-color: transparent; 
+    }
+    
     .custom-title-container { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
     .custom-title-logo { width: 80px; height: auto; }
+    
+    @media (max-width: 600px) {
+        .custom-title-logo { width: 40px !important; }
+        .custom-title-container { gap: 8px !important; margin-bottom: 15px !important; }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -89,7 +96,7 @@ if logo_file:
 else:
     st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
 
-# --- 簡潔版倒數計時 ---
+# --- 倒數計時功能 ---
 today = date.today()
 upcoming_shows = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動" and get_sort_date(e["日期"]) >= today]
 
