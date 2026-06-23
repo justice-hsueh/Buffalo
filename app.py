@@ -58,6 +58,28 @@ def get_sort_date(date_str):
 # --- 樣式設定 ---
 st.markdown("""
     <style>
+    # --- 重大活動倒數功能 ---
+st.markdown("### ⏳ 下一個重要演出倒數")
+today = date.today()
+# 找出所有演出活動，並篩選出今天以後的
+upcoming_shows = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動" and get_sort_date(e["日期"]) >= today]
+
+if upcoming_shows:
+    # 找最近的一場
+    next_show = sorted(upcoming_shows, key=lambda x: get_sort_date(x["日期"]))[0]
+    days_left = (get_sort_date(next_show["日期"]) - today).days
+    
+    # 根據天數變換顏色
+    color = "red" if days_left <= 7 else "orange" if days_left <= 14 else "green"
+    
+    st.markdown(f"""
+        <div style="background-color: #FFF5F5; padding: 15px; border-radius: 10px; border: 2px solid {color}; margin-bottom: 20px; text-align: center;">
+            <h3 style="margin:0; color: {color};">距離 <b>{next_show['內容'].splitlines()[0]}</b> 還有 <span style="font-size: 1.5em;">{days_left}</span> 天！</h3>
+            <p style="margin:5px 0 0 0;">(演出日期：{next_show['日期']})</p>
+        </div>
+    """, unsafe_allow_html=True)
+else:
+    st.info("目前沒有即將到來的演出活動，繼續努力練習喔！")
     .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
     .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
     .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
