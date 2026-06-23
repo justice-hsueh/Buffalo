@@ -18,10 +18,8 @@ def load_events():
         try:
             with open("events.json", "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # 確保每一筆資料都有地點欄位，沒有的話補上空字串
                 for item in data:
-                    if '地點' not in item:
-                        item['地點'] = ""
+                    if '地點' not in item: item['地點'] = ""
                 return data
         except: return []
     return []
@@ -101,8 +99,8 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
             lines = ev.get('內容', '').splitlines()
             title = lines[0] if lines else "無標題"
             details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
+            details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
             
-            # 安全顯示地點，若無地點則不顯示該行
             loc_val = ev.get('地點', '')
             location_html = f"<div style='font-size: 14px; margin-top: 3px;'>📍 {loc_val}</div>" if loc_val else ""
             
@@ -115,7 +113,6 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
                         📅 {ev['日期']} | ⏰ {ev['時間']}
                     </div>
                     {location_html}
-                    <hr style="border: 0; border-top: 1px solid #aaa; margin: 8px 0;">
-                    <div style="font-size: 15px; color: #444;">{details}</div>
+                    {details_html}
                 </div>
             """, unsafe_allow_html=True)
