@@ -5,18 +5,20 @@ from datetime import datetime, date
 
 st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide")
 
+# --- 設定配色 ---
 COLORS = {
     "✨ 演出活動": {"bg": "#E0F2FE", "border": "#0EA5E9"},
     "🥁 每日進度": {"bg": "#E2F0D9", "border": "#70AD47"},
     "📢 通知事項": {"bg": "#FCE8E6", "border": "#EA4335"}
 }
 
+# --- 核心邏輯 ---
 def load_events():
     if os.path.exists("events.json"):
         try:
             with open("events.json", "r", encoding="utf-8") as f:
                 return json.load(f)
-        except: pass
+        except: return []
     return []
 
 def parse_date(date_str):
@@ -24,8 +26,11 @@ def parse_date(date_str):
     try: return datetime.strptime(d, "%Y-%m-%d").date()
     except: return date(1900, 1, 1)
 
+# 初始化與自動清理過期資料
 if 'events' not in st.session_state:
-    st.session_state.events = load_events()
+    raw_data = load_events()
+    today = date.today()
+    st.session_state.events = [e for e in raw_data if parse_date(e["日期"]) >= today]
 
 # --- 標題 ---
 st.markdown("""
@@ -44,12 +49,9 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
     if mode == "新增行程":
         with st.sidebar.form("add_f"):
             cat = st.selectbox("分類", list(COLORS.keys()))
-            is_range = st.checkbox("啟用日期區間")
-            if is_range:
-                d_range = st.date_input("選擇日期區間", [])
-                f_date = f"{d_range[0]} ~ {d_range[1]}" if len(d_range) == 2 else str(d_range[0])
-            else:
-                f_date = str(st.date_input("選擇日期"))
+            d_start = st.date_input("開始日期")
+            is_range = st.checkbox("啟用結束日期 (一段時間)")
+            f_date = f"{d_start} ~ {st.date_input('結束日期')}" if is_range else str(d_start)
             time_in = st.text_input("時間")
             cont = st.text_area("內容")
             if st.form_submit_button("新增"):
@@ -61,10 +63,11 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
     elif mode == "修改行程":
         opts = {f"{e['日期']} | {e['內容'][:10]}": e for e in st.session_state.events}
         sel = st.sidebar.selectbox("選行程", list(opts.keys()))
-        new_d = st.sidebar.text_input("修改日期", opts[sel]['日期'])
-        new_c = st.sidebar.text_area("修改內容", opts[sel]['內容'])
+        target = opts[sel]
+        new_d = st.sidebar.text_input("修改日期", target['日期'])
+        new_c = st.sidebar.text_area("修改內容", target['內容'])
         if st.sidebar.button("儲存修改"):
-            opts[sel].update({'日期': new_d, '內容': new_c})
+            target.update({'日期': new_d, '內容': new_c})
             with open("events.json", "w", encoding="utf-8") as f:
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
             st.rerun()
