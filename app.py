@@ -26,13 +26,13 @@ def parse_date(date_str):
     try: return datetime.strptime(d, "%Y-%m-%d").date()
     except: return date(1900, 1, 1)
 
-# 初始化並自動清理
+# 初始化並自動清理過期資料
 if 'events' not in st.session_state:
     raw = load_events()
     today = date.today()
     st.session_state.events = [e for e in raw if parse_date(e["日期"]) >= today]
 
-# --- 標題 (使用固定樣式) ---
+# --- 標題 ---
 st.markdown("""
     <div style="background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
                 -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -50,7 +50,7 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
         with st.sidebar.form("add_f"):
             cat = st.selectbox("分類", list(COLORS.keys()))
             d_start = st.date_input("開始日期")
-            d_end = st.date_input("結束日期 (與開始日同即為單日)")
+            d_end = st.date_input("結束日期 (僅需一段時間時點選)")
             time_in = st.text_input("時間")
             cont = st.text_area("內容")
             if st.form_submit_button("新增"):
@@ -62,18 +62,21 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
 
     elif mode == "修改行程":
         opts = {f"{e['日期']} | {e['內容'][:10]}": e for e in st.session_state.events}
-        sel = st.sidebar.selectbox("選行程", list(opts.keys()))
+        sel = st.sidebar.selectbox("選擇要修改的行程", list(opts.keys()))
         target = opts[sel]
+        
+        new_cat = st.sidebar.selectbox("修改分類", list(COLORS.keys()), index=list(COLORS.keys()).index(target['分類']))
         new_d = st.sidebar.text_input("修改日期 (格式: YYYY-MM-DD 或 日期 ~ 日期)", target['日期'])
         new_c = st.sidebar.text_area("修改內容", target['內容'])
+        
         if st.sidebar.button("儲存修改"):
-            target.update({'日期': new_d, '內容': new_c})
+            target.update({'分類': new_cat, '日期': new_d, '內容': new_c})
             with open("events.json", "w", encoding="utf-8") as f:
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
             st.rerun()
 
     elif mode == "刪除行程":
-        to_del = st.sidebar.selectbox("選行程", [f"{e['日期']} | {e['內容'][:10]}" for e in st.session_state.events])
+        to_del = st.sidebar.selectbox("選擇要刪除的行程", [f"{e['日期']} | {e['內容'][:10]}" for e in st.session_state.events])
         if st.sidebar.button("確認刪除"):
             st.session_state.events = [e for e in st.session_state.events if f"{e['日期']} | {e['內容'][:10]}" != to_del]
             with open("events.json", "w", encoding="utf-8") as f:
@@ -85,6 +88,7 @@ col1, col2, col3 = st.columns(3)
 for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
     with col:
         st.subheader(cat)
+        # 顯示該分類下的所有有效行程
         for ev in sorted([e for e in st.session_state.events if e["分類"] == cat], key=lambda x: parse_date(x["日期"])):
             c = COLORS[cat]
             st.markdown(f"""
