@@ -88,19 +88,18 @@ if logo_file:
 else:
     st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
 
-# --- 倒數計時功能 ---
-st.markdown("### ⏳ 下一個重要演出倒數")
+# --- 簡潔版倒數計時 ---
 today = date.today()
 upcoming_shows = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動" and get_sort_date(e["日期"]) >= today]
 
 if upcoming_shows:
     next_show = sorted(upcoming_shows, key=lambda x: get_sort_date(x["日期"]))[0]
     days_left = (get_sort_date(next_show["日期"]) - today).days
-    color = "red" if days_left <= 7 else "orange" if days_left <= 14 else "green"
     st.markdown(f'''
-        <div style="background-color: #FFF5F5; padding: 15px; border-radius: 10px; border: 2px solid {color}; margin-bottom: 20px; text-align: center;">
-            <h3 style="margin:0; color: {color};">距離 <b>{next_show['內容'].splitlines()[0]}</b> 還有 <span style="font-size: 1.5em;">{days_left}</span> 天!</h3>
-            <p style="margin:5px 0 0 0;">(演出日期: {next_show['日期']})</p>
+        <div style="background-color: #F8F9FA; padding: 10px; border-radius: 8px; border-left: 5px solid #48BB78; margin-bottom: 20px;">
+            <div style="font-size: 18px; color: #2D3748;">
+                ⏳ 下一個演出倒數：距離 <b>{next_show['內容'].splitlines()[0]}</b> 還有 <b style="color: #48BB78; font-size: 1.3em;">{days_left}</b> 天
+            </div>
         </div>
     ''', unsafe_allow_html=True)
 else:
