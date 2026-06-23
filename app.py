@@ -8,8 +8,8 @@ st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide"
 # --- 設定配色 ---
 COLORS = {
     "✨ 演出活動": {"bg": "#E0F2FE", "border": "#0EA5E9"},
-    "🥁 每日進度": {"bg": "#E2F0D9", "border": "#70AD47"},
-    "📢 通知事項": {"bg": "#FCE8E6", "border": "#EA4335"}
+    "🥁 每日進度": {"bg": "#F2F2F2", "border": "#808080"},
+    "📢 通知事項": {"bg": "#FFF4E5", "border": "#FFA500"}
 }
 
 # --- 核心邏輯 ---
@@ -17,10 +17,7 @@ def load_events():
     if os.path.exists("events.json"):
         try:
             with open("events.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for item in data:
-                    if '地點' not in item: item['地點'] = ""
-                return data
+                return json.load(f)
         except: return []
     return []
 
@@ -31,9 +28,9 @@ def parse_date(date_str):
 
 # 初始化並自動清理過期資料
 if 'events' not in st.session_state:
-    st.session_state.events = load_events()
+    raw = load_events()
     today = date.today()
-    st.session_state.events = [e for e in st.session_state.events if parse_date(e["日期"]) >= today]
+    st.session_state.events = [e for e in raw if parse_date(e["日期"]) >= today]
 
 # --- 標題 ---
 st.markdown("""
@@ -55,11 +52,10 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
             d_start = st.date_input("開始日期")
             d_end = st.date_input("結束日期 (僅需一段時間時點選)")
             time_in = st.text_input("時間")
-            loc_in = st.text_input("地點")
             cont = st.text_area("內容 (第一行標題，第二行起為詳細內容)")
             if st.form_submit_button("新增"):
                 f_date = f"{d_start} ~ {d_end}" if d_start != d_end else str(d_start)
-                st.session_state.events.append({"分類": cat, "日期": f_date, "時間": time_in, "地點": loc_in, "內容": cont})
+                st.session_state.events.append({"分類": cat, "日期": f_date, "時間": time_in, "內容": cont})
                 with open("events.json", "w", encoding="utf-8") as f:
                     json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
                 st.rerun()
@@ -72,11 +68,10 @@ if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb
         new_cat = st.sidebar.selectbox("修改分類", list(COLORS.keys()), index=list(COLORS.keys()).index(target['分類']))
         new_d = st.sidebar.text_input("修改日期", target['日期'])
         new_t = st.sidebar.text_input("修改時間", target.get('時間', ''))
-        new_l = st.sidebar.text_input("修改地點", target.get('地點', ''))
         new_c = st.sidebar.text_area("修改內容", target['內容'])
         
         if st.sidebar.button("儲存修改"):
-            target.update({'分類': new_cat, '日期': new_d, '時間': new_t, '地點': new_l, '內容': new_c})
+            target.update({'分類': new_cat, '日期': new_d, '時間': new_t, '內容': new_c})
             with open("events.json", "w", encoding="utf-8") as f:
                 json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
             st.rerun()
@@ -101,9 +96,6 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
             details = "<br>".join(lines[1:]) if len(lines) > 1 else ""
             details_html = f"<hr style='border: 0; border-top: 1px solid #aaa; margin: 8px 0;'><div style='font-size: 15px; color: #444;'>{details}</div>" if details else ""
             
-            loc_val = ev.get('地點', '')
-            location_html = f"<div style='font-size: 14px; margin-top: 3px;'>📍 {loc_val}</div>" if loc_val else ""
-            
             st.markdown(f"""
                 <div style="background-color: {c['bg']}; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
                             border-left: 8px solid {c['border']}; color: #000000;">
@@ -112,7 +104,6 @@ for col, cat in zip([col1, col2, col3], list(COLORS.keys())):
                     <div style="font-size: 14px; font-weight: 600; color: #333;">
                         📅 {ev['日期']} | ⏰ {ev['時間']}
                     </div>
-                    {location_html}
                     {details_html}
                 </div>
             """, unsafe_allow_html=True)
