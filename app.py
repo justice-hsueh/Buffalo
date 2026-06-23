@@ -1,146 +1,69 @@
 import streamlit as st
-import pandas as pd
-from datetime import datetime, date, timedelta
-import os
-import base64
 import json
+import os
+from datetime import datetime, date
 
+# 頁面設定
 st.set_page_config(page_title="大竹國小兒童樂隊行事曆", layout="wide")
 
-DATA_FILE = "events.json"
-CONFIG_FILE = "config.json"
-
-# --- 密碼管理 ---
-def load_admin_password():
-    MY_PASSWORD = "dccb"
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f).get("admin_password", MY_PASSWORD)
-        except: pass
-    return MY_PASSWORD
-
-ADMIN_PASSWORD = load_admin_password()
-
-# --- 資料存取 ---
+# --- 核心資料讀取 ---
 def load_events():
-    if os.path.exists(DATA_FILE):
+    if os.path.exists("events.json"):
         try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
+            with open("events.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except: pass
     return []
 
-def save_events(events):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(events, f, ensure_ascii=False, indent=4)
+# 檢查資料是否過期
+def is_valid(event_date_str):
+    try:
+        return datetime.strptime(event_date_str, "%Y-%m-%d").date() >= date.today()
+    except:
+        return True # 格式錯誤則保留
 
-# --- 輔助功能 ---
-def get_smart_icon(text):
-    text_lower = text.lower()
-    if any(k in text_lower for k in ["譜", "歌", "樂譜", "演奏"]): return "🎼"
-    if any(k in text_lower for k in ["帶", "拿", "備", "準備", "攜帶"]): return "🎒"
-    if any(k in text_lower for k in ["注意", "務必", "記得", "重要", "切記"]): return "⚠️"
-    if any(k in text_lower for k in ["服", "穿", "衣", "團服"]): return "👕"
-    return "📌"
+# 讀取並過濾資料 (不在讀取時刪除檔案，避免衝突)
+all_events = load_events()
+# 篩選掉過期的內容
+st.session_state.events = [e for e in all_events if is_valid(e["日期"])]
 
-def render_content_items(lines_list):
-    html = ""
-    for line in lines_list:
-        if line.strip():
-            html += f'<div style="margin-bottom: 2px; display: flex; align-items: flex-start; gap: 6px;"><span>{get_smart_icon(line)}</span><span>{line}</span></div>'
-    return html
-
-def get_sort_date(date_str):
-    try: return datetime.strptime(str(date_str).split("~")[0].strip(), "%Y-%m-%d").date()
-    except: return date.max
-
-# --- 樣式設定 ---
-st.markdown("""
-    <style>
-    .event-card { padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 19px !important; }
-    .show-style { background-color: #E0F2FE; border-left: 6px solid #0EA5E9; color: #0369A1; }
-    .progress-style { background-color: #E2F0D9; border-left: 6px solid #70AD47; color: #385723; }
-    .notice-style { background-color: #FCE8E6; border-left: 6px solid #EA4335; color: #A51D12; }
-    hr { margin: 6px 0 !important; border: 0; border-top: 1px dashed #A0A0A0; }
-    .title-text { font-size: 22px !important; font-weight: bold !important; margin-bottom: 4px; }
-    .rainbow-text { font-size: 42px !important; font-weight: bold !important; 
-        background: linear-gradient(to right, #E53E3E, #ED8936, #ECC94B, #48BB78, #3182CE, #000080, #9F7AEA);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .custom-title-container { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-    .custom-title-logo { width: 80px; height: auto; }
-    </style>
-""", unsafe_allow_html=True)
-
-if 'events' not in st.session_state: st.session_state.events = load_events()
-
-# --- 標題與 Logo 渲染 ---
-logo_file = next((n for n in ["logo.jpg", "logo.JPG", "logo.png", "logo.PNG", "logo.jpeg"] if os.path.exists(n)), None)
-if logo_file:
-    with open(logo_file, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode()
-    st.markdown(f'''<div class="custom-title-container"><img class="custom-title-logo" src="data:image/jpeg;base64,{encoded}"><span class="rainbow-text">大竹國小兒童樂隊行事曆</span></div>''', unsafe_allow_html=True)
-else:
-    st.markdown('<div class="rainbow-text">🎵 大竹國小兒童樂隊行事曆</div>', unsafe_allow_html=True)
+# --- 標題 ---
+st.title("🎵 大竹國小兒童樂隊行事曆")
 
 # --- 倒數計時 ---
 today = date.today()
-upcoming_shows = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動" and get_sort_date(e["日期"]) >= today]
-if upcoming_shows:
-    next_show = sorted(upcoming_shows, key=lambda x: get_sort_date(x["日期"]))[0]
-    days_left = (get_sort_date(next_show["日期"]) - today).days
-    st.info(f"⏳ 下一個演出：{next_show['內容'].splitlines()[0]}，還有 {days_left} 天！")
-
-# --- 側邊欄 ---
-st.sidebar.markdown("## ⚙️ 管理員控制台")
-if st.sidebar.text_input("🔑 請輸入管理密碼：", type="password") == ADMIN_PASSWORD:
-    st.sidebar.success("🔓 已解鎖編輯")
-    mode = st.sidebar.radio("操作項目：", ["➕ 新增行程", "✏️ 修改行程", "🗑️ 刪除行程"])
-    if mode == "➕ 新增行程":
-        with st.sidebar.form("add_form", clear_on_submit=True):
-            cat = st.selectbox("分類", ["✨ 演出活動", "🥁 每日進度", "📢 通知事項"])
-            f_date = str(st.date_input("選擇日期"))
-            time_in = st.text_input("時間")
-            loc = st.text_input("地點") if cat == "✨ 演出活動" else ""
-            cont = st.text_area("內容")
-            if st.form_submit_button("新增"):
-                new_id = max([e["id"] for e in st.session_state.events] + [0]) + 1
-                data = {"id": new_id, "日期": f_date, "分類": cat, "時間": time_in, "內容": cont}
-                if cat == "✨ 演出活動": data["地點"] = loc
-                st.session_state.events.append(data)
-                save_events(st.session_state.events)
-                st.rerun()
-    elif mode == "✏️ 修改行程":
-        event_list = {f"{e['分類']} - {e['內容'][:10]}": e for e in st.session_state.events}
-        selected = st.sidebar.selectbox("選擇要修改的行程", list(event_list.keys()))
-        ev = event_list[selected]
-        with st.sidebar.form("edit_form"):
-            new_cont = st.text_area("修改內容", ev["內容"])
-            if st.form_submit_button("儲存"):
-                ev["內容"] = new_cont
-                save_events(st.session_state.events)
-                st.rerun()
-    elif mode == "🗑️ 刪除行程":
-        event_list = {f"{e['分類']} - {e['內容'][:10]}": e for e in st.session_state.events}
-        selected = st.sidebar.selectbox("選擇要刪除的行程", list(event_list.keys()))
-        if st.sidebar.button("確認"):
-            st.session_state.events = [e for e in st.session_state.events if e["id"] != event_list[selected]["id"]]
-            save_events(st.session_state.events)
-            st.rerun()
+shows = [e for e in st.session_state.events if e["分類"] == "✨ 演出活動"]
+if shows:
+    upcoming = [e for e in shows if datetime.strptime(e["日期"], "%Y-%m-%d").date() >= today]
+    if upcoming:
+        next_show = sorted(upcoming, key=lambda x: x["日期"])[0]
+        days = (datetime.strptime(next_show["日期"], "%Y-%m-%d").date() - today).days
+        st.info(f"⏳ 下一個演出：{next_show['內容'].splitlines()[0]}，還有 {days} 天！")
 
 # --- 主畫面 ---
 col1, col2, col3 = st.columns(3)
-with col1:
-    st.markdown("<h2>✨ 演出活動</h2>", unsafe_allow_html=True)
-    for ev in sorted([e for e in st.session_state.events if e["分類"] == "✨ 演出活動"], key=lambda x: get_sort_date(x["日期"])):
-        lines = ev["內容"].split("\n")
-        st.markdown(f'''<div class="event-card show-style"><div class="title-text">🎵 {lines[0]}</div>📅 {ev["日期"]} | ⏰ {ev["時間"]}<br>🏠 {ev.get("地點", "未定")}<hr>{render_content_items(lines[1:])}</div>''', unsafe_allow_html=True)
-with col2:
-    st.markdown("<h2>🥁 每日進度</h2>", unsafe_allow_html=True)
-    for ev in sorted([e for e in st.session_state.events if e["分類"] == "🥁 每日進度"], key=lambda x: get_sort_date(x["日期"])):
-        st.markdown(f'''<div class="event-card progress-style"><strong>📅 {ev["日期"]}</strong><hr>{render_content_items(ev["內容"].split("\n"))}</div>''', unsafe_allow_html=True)
-with col3:
-    st.markdown("<h2>📢 通知事項</h2>", unsafe_allow_html=True)
-    for ev in sorted([e for e in st.session_state.events if e["分類"] == "📢 通知事項"], key=lambda x: get_sort_date(x["日期"])):
-        lines = ev["內容"].split("\n")
-        st.markdown(f'''<div class="event-card notice-style"><div class="title-text">📢 {lines[0]}</div>📅 {ev["日期"]}<hr>{render_content_items(lines[1:])}</div>''', unsafe_allow_html=True)
+colors = {"✨ 演出活動": "#E0F2FE", "🥁 每日進度": "#E2F0D9", "📢 通知事項": "#FCE8E6"}
+
+for col, cat in zip([col1, col2, col3], ["✨ 演出活動", "🥁 每日進度", "📢 通知事項"]):
+    with col:
+        st.subheader(cat)
+        for ev in sorted([e for e in st.session_state.events if e["分類"] == cat], key=lambda x: x["日期"]):
+            st.markdown(f"""
+                <div style="background-color: {colors.get(cat, '#f0f0f0')}; 
+                            padding: 15px; border-radius: 10px; margin-bottom: 15px; 
+                            border-left: 6px solid #555; color: #000000;">
+                    <div style="font-size: 18px; font-weight: bold;">{ev['內容'].splitlines()[0]}</div>
+                    <div style="font-size: 14px; margin-top: 5px;">📅 {ev['日期']} | ⏰ {ev['時間']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+# --- 側邊欄 ---
+st.sidebar.markdown("### ⚙️ 管理員控制台")
+if st.sidebar.text_input("🔑 請輸入管理密碼", type="password") == "dccb":
+    st.sidebar.success("已登入")
+    if st.sidebar.button("清除過期資料並存檔"):
+        # 真正執行刪除存檔的動作
+        with open("events.json", "w", encoding="utf-8") as f:
+            json.dump(st.session_state.events, f, ensure_ascii=False, indent=4)
+        st.sidebar.write("已清理完成！")
+        st.rerun()
